@@ -1,0 +1,33 @@
+name: Autograding
+
+on: [push]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout student repo
+      uses: actions/checkout@v4
+
+    # - name: Checkout hidden tests
+    #   uses: actions/checkout@v4
+    #   with:
+    #     repository: FEI-OPK/zadanie1-hidden-tests
+    #     token: ${{ secrets.TEST_REPO_TOKEN }}
+    #     path: hidden_tests
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake g++ libopencv-dev libeigen3-dev libgtest-dev
+
+    - name: Build everything
+      run: |
+        mkdir -p build
+        cd build
+        cmake ..
+        make
+
+    # - name: Run hidden tests
+    #   run: ./build/hidden_tests/run_tests
