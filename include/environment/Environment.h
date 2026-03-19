@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <opencv2/opencv.hpp>
 
 
 namespace environment {
@@ -18,6 +19,8 @@ public:
 
     double getWidth() const;
     double getHeight() const;
+private:
+    cv::Mat map_data;
 };
 
-} // namespace environment
+}
