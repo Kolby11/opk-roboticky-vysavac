@@ -15,10 +15,13 @@ struct Config {
 };
 
 class Lidar {
+    private:
+    Config config_;
+    std::shared_ptr<environment::Environment> env_;
 public:
     Lidar(const Config& config, std::shared_ptr<environment::Environment> env);
-
     std::vector<geometry::Point2d> scan(const geometry::RobotState& state) const;
+    scan(const geometry::RobotState& state) const;
 };
 
 } // namespace lidar
