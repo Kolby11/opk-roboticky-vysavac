@@ -19,6 +19,10 @@ public:
     Lidar(const Config& config, std::shared_ptr<environment::Environment> env);
 
     std::vector<geometry::Point2d> scan(const geometry::RobotState& state) const;
+
+private:
+    Config config;
+    std::shared_ptr<environment::Environment> env;
 };
 
 } // namespace lidar
