@@ -1,24 +1,26 @@
-# pragma once
+#pragma once
 
-namespace geometry {
+namespace geometry
+{
 
-struct Point2d {
-    double x;
-    double y;
-};
+    struct Point2d
+    {
+        double x{0.0};
+        double y{0.0};
+    };
 
-struct Twist {
-    double linear;
-    double angular;
-};
+    struct Twist
+    {
+        double linear{0.0};
+        double angular{0.0};
+    };
 
-
-struct RobotState {
-    double x;
-    double y;
-    double theta;
-    Twist velocity;
-};
+    struct RobotState
+    {
+        double x{0.0};
+        double y{0.0};
+        double theta{0.0};
+        Twist velocity;
+    };
 
 } // namespace geometry
-
