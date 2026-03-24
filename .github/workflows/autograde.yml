@@ -1,33 +1,121 @@
-name: Autograding
+name: Autograding Tests
 
-on: [push]
+on:
+  - push
+  - workflow_dispatch
+  - repository_dispatch
+
+permissions:
+  checks: write
+  actions: read
+  contents: read
 
 jobs:
-  build-and-test:
+  run-autograding-tests:
     runs-on: ubuntu-latest
-
+    if: github.actor != 'github-classroom[bot]'
     steps:
     - name: Checkout student repo
       uses: actions/checkout@v4
 
-    # - name: Checkout hidden tests
-    #   uses: actions/checkout@v4
-    #   with:
-    #     repository: FEI-OPK/zadanie1-hidden-tests
-    #     token: ${{ secrets.TEST_REPO_TOKEN }}
-    #     path: hidden_tests
+    - name: Checkout hidden tests
+      uses: actions/checkout@v4
+      with:
+        repository: FEI-OPK/zadanie1-hidden-tests
+        token: ${{ secrets.TEST_REPO_TOKEN }}
+        path: hidden_tests
 
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y cmake g++ libopencv-dev libeigen3-dev libgtest-dev
+        sudo apt-get install -y cmake g++ libopencv-dev libeigen3-dev libgtest-dev libxml2-utils
 
-    - name: Build everything
+    - name: Build student code
       run: |
         mkdir -p build
         cd build
         cmake ..
         make
+        
+    - name: Run hidden tests
+      run: |
+        # Navigate to where your test executable was built
+        cd build/hidden_tests
+        ./run_tests --gtest_output=xml:results.xml || true 
 
-    # - name: Run hidden tests
-    #   run: ./build/hidden_tests/run_tests
+    - name: Parse test results
+      id: parse
+      run: |
+        cd build/hidden_tests
+        # Count total and failed tests from the GTest XML output
+        total=$(xmllint --xpath "count(//testcase)" results.xml || echo 0)
+        failed=$(xmllint --xpath "count(//testcase[failure])" results.xml || echo 0)
+        passed=$((total - failed))
+        
+        # Prevent division by zero
+        if [ "$total" -eq 0 ]; then
+          normalized=0
+        else
+          normalized=$(awk "BEGIN {print $passed/$total}")
+        fi
+        
+        echo "SCORE=$passed" >> $GITHUB_OUTPUT
+        echo "TOTAL=$total" >> $GITHUB_OUTPUT
+        echo "NORM=$normalized" >> $GITHUB_OUTPUT
+        
+        echo "##[group]Autograding Score"
+        echo "Passed: $passed"
+        echo "Failed: $failed"
+        echo "Total: $total"
+        echo "Normalized: $normalized"
+        echo "##[endgroup]"
+    
+    - name: Calculate normalized score for reporter
+      id: calc
+      run: |
+        # Convert 0-1 decimal to 0-100 integer
+        normalized_percent=$(awk "BEGIN {printf \"%d\", ${{ steps.parse.outputs.NORM }} * 100}")
+        echo "NORMALIZED_PERCENT=$normalized_percent" >> $GITHUB_OUTPUT
+    
+    - name: Format Autograding Output
+      id: formatter
+      run: |
+        score=${{ steps.calc.outputs.NORMALIZED_PERCENT }}
+        
+        # We set status to "pass" so the reporter table shows the numeric score
+        # instead of masking a sub-100 score as a "0".
+        status="pass"
+        
+        json_payload=$(cat <<EOF
+        {
+          "version": 1,
+          "status": "$status",
+          "max_score": 100,
+          "tests": [
+            {
+              "name": "Hidden Tests",
+              "status": "$status",
+              "score": $score,
+              "max_score": 100,
+              "test_code": "",
+              "output": "Passed: ${{ steps.parse.outputs.SCORE }} / Total: ${{ steps.parse.outputs.TOTAL }}",
+              "compilation_status": "success",
+              "execution_time": 0
+            }
+          ]
+        }
+        EOF
+        )
+        
+        # Base64 encode the JSON for the Autograding Reporter
+        encoded_result=$(echo -n "$json_payload" | base64 -w 0)
+        echo "encoded_result=$encoded_result" >> $GITHUB_OUTPUT
+    
+    - name: Autograding Reporter
+      uses: classroom-resources/autograding-grading-reporter@v1
+      env:
+        # The env name must be <RUNNER_ID_IN_UPPERCASE>_RESULTS
+        HIDDEN-TESTS_RESULTS: "${{ steps.formatter.outputs.encoded_result }}"
+      with:
+        runners: hidden-tests
+        token: ${{ secrets.GITHUB_TOKEN }}
