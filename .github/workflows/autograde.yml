@@ -22,7 +22,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: FEI-OPK/zadanie1-hidden-tests
-        token: ${{ secrets.TEST_REPO_TOKEN }}
+        token: ${{ secrets.TEST_REPO_TOKEN2 }}
         path: hidden_tests
 
     - name: Install dependencies
