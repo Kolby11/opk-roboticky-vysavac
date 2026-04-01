@@ -9,6 +9,7 @@ add_library(robot_lib
     src/Environment.cpp
     src/Lidar.cpp
     src/Canvas.cpp
+    src/Robot.cpp
 )
 
 target_include_directories(robot_lib PUBLIC include)
