@@ -1,38 +1,41 @@
 #include "environment/Environment.h"
-#include <opencv2/opencv.hpp>
+
 namespace environment
 {
     Environment::Environment(const Config &config)
     {
-        resolution_ = config.resolution;
-        cv::Mat map = cv::imread(config.map_filename, cv::IMREAD_GRAYSCALE);
-        width_ = map.cols;
-        height_ = map.rows;
-        occupancy_.resize(height_, std::vector<bool>(width_, false));
-        for (int y = 0; y < height_; ++y)
-        {
-            for (int x = 0; x < width_; ++x)
-            {
-                occupancy_[y][x] = (map.at<uchar>(y, x) < 128);
-            }
-        }
+        this->resolution = config.resolution;
+        this->LoadMap(config.map_filename, config.resolution);
     }
+
+    void Environment::LoadMap(const std::string &map_filename, const double resolution)
+    {
+        this->map = cv::imread(map_filename);
+
+        if (this->map.empty())
+        {
+            std::cerr << "Failed to load map: " << map_filename << std::endl;
+            return;
+        }
+
+        int width = static_cast<int>(this->map.cols * resolution);
+        int height = static_cast<int>(this->map.rows * resolution);
+        cv::resize(this->map, this->map, cv::Size(width, height));
+    }
+
     bool Environment::isOccupied(double x, double y) const
     {
-        int pixel_x = static_cast<int>(x / resolution_);
-        int pixel_y = height_ - 1 - static_cast<int>(y / resolution_);
-        if (pixel_x < 0 || pixel_x >= width_ || pixel_y < 0 || pixel_y >= height_)
-        {
+        int col = static_cast<int>(x);
+        int row = static_cast<int>(y);
+
+        if (col < 0 || row < 0 || col >= map.cols || row >= map.rows)
             return true;
-        }
-        return occupancy_[pixel_y][pixel_x];
+
+        cv::Vec3b pixel = map.at<cv::Vec3b>(row, col);
+        return pixel[0] < 128 && pixel[1] < 128 && pixel[2] < 128;
     }
-    double Environment::getWidth() const
-    {
-        return width_ * resolution_;
-    }
-    double Environment::getHeight() const
-    {
-        return height_ * resolution_;
-    }
-}
+
+    double Environment::getWidth() const { return map.cols; }
+    double Environment::getHeight() const { return map.rows; }
+
+} // namespace environment

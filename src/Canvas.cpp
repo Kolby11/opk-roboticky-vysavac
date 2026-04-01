@@ -14,7 +14,6 @@ namespace canvas
             return;
         }
         cv::cvtColor(gray, image_, cv::COLOR_GRAY2BGR);
-        std::cout << "Canvas loaded!" << std::endl;
     }
 
     void Canvas::drawPoint(double x, double y)
@@ -52,4 +51,4 @@ namespace canvas
         cv::waitKey(0);
     }
 
-} 
+}

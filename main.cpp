@@ -1,47 +1,42 @@
-#include "environment/Environment.h"
-#include "environment/Lidar.h"
-#include "Canvas.h"
 #include <iostream>
 #include <memory>
-#include <cmath>
 
-int main(){
+#include "Canvas.h"
+#include "environment/Environment.h"
+#include "environment/Lidar.h"
 
-    environment::Config envCfg;
-    envCfg.map_filename = "../resources/opk-map.png";
-    envCfg.resolution = 0.05;
-    auto env = std::make_shared<environment::Environment>(envCfg);
-    std::cout << "Map loaded!" << std::endl;
+int main(int argc, char *argv[])
+{
+    if (argc < 2)
+    {
+        std::cerr << "Usage: " << argv[0] << " <map_file>\n";
+        return 1;
+    }
 
-    lidar::Config lidarCfg;
-    lidarCfg.max_range = 100.0;
-    lidarCfg.beam_count = 360;
-    lidarCfg.first_ray_angle = -3.14;
-    lidarCfg.last_ray_angle = 3.14;
-    lidar::Lidar lidar(lidarCfg, env);
-    std::cout << "Lidar created!" << std::endl;
+    environment::Config environment_config = {
+        .map_filename = argv[1],
+        .resolution = 1.0};
 
-    canvas::Canvas cv(envCfg.map_filename, envCfg.resolution);
-    cv.drawRobot(30.0, 30.0);
-
-    geometry::RobotState rob{
-        30.0,
-        30.0,
-        1.5,
-        {0.0, 0.0}
-    };
-    cv.drawRobot(35.0, 35.0);
-    geometry::RobotState rob1{
-        35.0,
-        35.0,
-        1.5,
-        {0.0, 0.0}
+    lidar::Config lidar_config = {
+        .max_range = 200,
+        .beam_count = 20,
+        .first_ray_angle = 0,
+        .last_ray_angle = 180,
     };
 
-    std::vector<geometry::Point2d> points = lidar.scan(rob);
-    cv.drawLidarPoints(points);
-    std::vector<geometry::Point2d> points1 = lidar.scan(rob1);
-    cv.drawLidarPoints(points1);
+    auto environment = std::make_shared<environment::Environment>(environment_config);
+    auto lidar = std::make_shared<lidar::Lidar>(lidar_config, environment);
 
-    cv.show();
+    canvas::Canvas canvas(argv[1], environment_config.resolution);
+
+    geometry::RobotState state{static_cast<double>(environment->getWidth() / 2),
+                               static_cast<double>(environment->getHeight() / 2),
+                               0.0, {0.0, 0.0}};
+
+    auto hits = lidar->scan(state);
+    canvas.drawRobot(state.x, state.y);
+    canvas.drawLidarPoints(hits);
+    canvas.show();
+
+    return 0;
 }

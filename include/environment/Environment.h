@@ -1,6 +1,8 @@
 #pragma once
-#include <vector>
+
 #include <string>
+
+#include <opencv2/opencv.hpp>
 
 namespace environment
 {
@@ -14,7 +16,11 @@ namespace environment
     class Environment
     {
     public:
+        cv::Mat map;
+        double resolution;
+
         explicit Environment(const Config &config);
+        void LoadMap(const std::string &map_filename, const double resolution);
 
         bool isOccupied(double x, double y) const;
 
@@ -22,10 +28,7 @@ namespace environment
         double getHeight() const;
 
     private:
-        std::vector<std::vector<bool>> occupancy_;
-        double resolution_;
-        int width_;
-        int height_;
+        void LoadMap();
     };
 
-}
+} // namespace environment
