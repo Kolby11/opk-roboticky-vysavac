@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string>
-
 #include <opencv2/opencv.hpp>
 
 namespace environment
@@ -10,25 +9,21 @@ namespace environment
     struct Config
     {
         std::string map_filename;
-        double resolution;
+        double resolution; // metres per pixel
     };
 
     class Environment
     {
     public:
-        cv::Mat map;
-        double resolution;
-
         explicit Environment(const Config &config);
-        void LoadMap(const std::string &map_filename, const double resolution);
 
         bool isOccupied(double x, double y) const;
-
         double getWidth() const;
         double getHeight() const;
 
     private:
-        void LoadMap();
+        cv::Mat map_;
+        double resolution_;
     };
 
 } // namespace environment

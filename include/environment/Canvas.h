@@ -3,13 +3,15 @@
 #include "Geometry.h"
 #include <vector>
 
-class Canvas {
+class Canvas
+{
 private:
     cv::Mat map_;
     double resolution_;
+
 public:
-    Canvas(const std::string& map_file,double resolution);
-    void drawPoint(const geometry::Point2d& p);
-    void drawHits(const std::vector<geometry::Point2d>& hits);
+    Canvas(const std::string &map_file, double resolution);
+    void drawPoint(const geometry::Point2d &p);
+    void drawHits(const std::vector<geometry::Point2d> &hits);
     void show();
 };

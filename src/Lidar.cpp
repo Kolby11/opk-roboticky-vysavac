@@ -1,8 +1,5 @@
 #include <cmath>
-#include <numbers>
-#include "environment/Lidar.h"
-
-static double deg2rad(double deg) { return deg * std::numbers::pi / 180.0; }
+#include "robot/lidar.h"
 
 namespace lidar
 {
@@ -22,10 +19,11 @@ namespace lidar
         {
             double ray_angle;
             if (config_.beam_count == 1)
-                ray_angle = deg2rad(config_.first_ray_angle);
+                ray_angle = config_.first_ray_angle;
             else
-                ray_angle = deg2rad(config_.first_ray_angle +
-                            i * config_.last_ray_angle / (config_.beam_count - 1));
+                ray_angle = config_.first_ray_angle +
+                            i * (config_.last_ray_angle - config_.first_ray_angle) /
+                                (config_.beam_count - 1);
 
             double absolute_angle = state.theta + ray_angle;
             double dx = std::cos(absolute_angle) * step_size;

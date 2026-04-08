@@ -4,6 +4,7 @@
 #include <memory>
 #include "types/Geometry.h"
 #include "environment/Environment.h"
+#include "robot/Robot.h"
 
 namespace lidar
 {

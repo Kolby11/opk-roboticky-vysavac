@@ -15,6 +15,7 @@ namespace robot
         geometry::Twist emergency_decelerations;
         double command_duration;
         int simulation_period_ms;
+        geometry::RobotState initial_state{};
     };
 
     class Robot

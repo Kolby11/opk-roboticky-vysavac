@@ -8,7 +8,7 @@ namespace robot
     Robot::Robot(const Config &config, const CollisionCb &collision_cb)
         : config_(config),
           collision_cb_(collision_cb),
-          state_{0.0, 0.0, 0.0, {0.0, 0.0}},
+          state_(config.initial_state),
           in_collision_(false),
           target_velocity_{0.0, 0.0},
           command_deadline_(std::chrono::steady_clock::now()),
@@ -47,12 +47,23 @@ namespace robot
 
     void Robot::update(const geometry::Twist &velocity, double dt)
     {
-        state_.x += velocity.linear * std::cos(state_.theta) * dt;
-        state_.y += velocity.linear * std::sin(state_.theta) * dt;
+        double new_x = state_.x + velocity.linear * std::cos(state_.theta) * dt;
+        double new_y = state_.y + velocity.linear * std::sin(state_.theta) * dt;
         state_.theta += velocity.angular * dt;
 
         if (collision_cb_)
-            in_collision_ = collision_cb_(state_);
+        {
+            geometry::RobotState test{new_x, new_y, state_.theta, velocity};
+            if (collision_cb_(test))
+            {
+                in_collision_ = true;
+                return;
+            }
+            in_collision_ = false;
+        }
+
+        state_.x = new_x;
+        state_.y = new_y;
     }
 
     void Robot::simulationLoop()
