@@ -29,13 +29,29 @@ namespace environment
         double height{0.0};
     };
 
+    struct WasteRadius
+    {
+        double min{1.0};
+        double max{3.0};
+    };
+
+    struct WasteType
+    {
+        std::string name;
+        std::string color;
+    };
+
     struct Config
     {
         std::string map_filename;
         double resolution{1.0}; // metres per pixel
         std::vector<CircleObstacle> circle_obstacles;
         std::vector<RectangleObstacle> rectangle_obstacles;
-        std::optional<Station> waste_station;
+        std::optional<Station> station;
+        double robot_radius{8.0};
+        WasteRadius waste_radius;
+        std::vector<WasteType> waste_types;
+        int max_robot_capacity{10};
 
         static Config fromYamlFile(const std::string &filename);
     };
@@ -54,6 +70,10 @@ namespace environment
         const std::vector<CircleObstacle> &getCircleObstacles() const;
         const std::vector<RectangleObstacle> &getRectangleObstacles() const;
         const std::optional<Station> &getStation() const;
+        double getRobotRadius() const;
+        const WasteRadius &getWasteRadius() const;
+        const std::vector<WasteType> &getWasteTypes() const;
+        int getMaxRobotCapacity() const;
 
     private:
         cv::Mat map_;
@@ -62,6 +82,10 @@ namespace environment
         std::vector<CircleObstacle> circle_obstacles_;
         std::vector<RectangleObstacle> rectangle_obstacles_;
         std::optional<Station> station_;
+        double robot_radius_;
+        WasteRadius waste_radius_;
+        std::vector<WasteType> waste_types_;
+        int max_robot_capacity_;
     };
 
 } // namespace environment

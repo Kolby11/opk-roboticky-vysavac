@@ -46,6 +46,23 @@ namespace environment
             }
         }
 
+        int requireInt(const YAMLValue &node, const std::string &field_name)
+        {
+            const std::string value = requireScalar(node, field_name);
+            try
+            {
+                std::size_t consumed = 0;
+                const int result = std::stoi(value, &consumed);
+                if (consumed != value.size())
+                    throw std::runtime_error("");
+                return result;
+            }
+            catch (const std::exception &)
+            {
+                throw std::runtime_error("Invalid integer YAML value for: " + field_name);
+            }
+        }
+
         Config configFromYamlDocument(const YAMLDocument &document, const std::filesystem::path &base_dir)
         {
             const YAMLValue &root = document.root;
@@ -89,15 +106,42 @@ namespace environment
                 }
             }
 
-            const auto station_it = root.map.find("waste_station");
+            const auto station_it = root.map.find("station");
             if (station_it != root.map.end())
             {
                 Station station;
-                station.origin.x = requireDouble(requireMapEntry(station_it->second, "x"), "waste_station.x");
-                station.origin.y = requireDouble(requireMapEntry(station_it->second, "y"), "waste_station.y");
-                station.width = requireDouble(requireMapEntry(station_it->second, "width"), "waste_station.width");
-                station.height = requireDouble(requireMapEntry(station_it->second, "height"), "waste_station.height");
-                config.waste_station = station;
+                station.origin.x = requireDouble(requireMapEntry(station_it->second, "x"), "station.x");
+                station.origin.y = requireDouble(requireMapEntry(station_it->second, "y"), "station.y");
+                station.width = requireDouble(requireMapEntry(station_it->second, "width"), "station.width");
+                station.height = requireDouble(requireMapEntry(station_it->second, "height"), "station.height");
+                config.station = station;
+            }
+
+            const auto robot_it = root.map.find("robot");
+            if (robot_it != root.map.end())
+            {
+                config.robot_radius = requireDouble(requireMapEntry(robot_it->second, "radius"), "robot.radius");
+                config.max_robot_capacity = requireInt(requireMapEntry(robot_it->second, "max_capacity"), "robot.max_capacity");
+            }
+
+            const auto waste_it = root.map.find("waste");
+            if (waste_it != root.map.end())
+            {
+                const YAMLValue &radius_node = requireMapEntry(waste_it->second, "radius");
+                config.waste_radius.min = requireDouble(requireMapEntry(radius_node, "min"), "waste.radius.min");
+                config.waste_radius.max = requireDouble(requireMapEntry(radius_node, "max"), "waste.radius.max");
+
+                const YAMLValue &types_node = requireMapEntry(waste_it->second, "types");
+                if (!types_node.isSequence())
+                    throw std::runtime_error("Expected sequence for: waste.types");
+
+                for (const YAMLValue &type_node : types_node.sequence)
+                {
+                    WasteType waste_type;
+                    waste_type.name = requireScalar(requireMapEntry(type_node, "name"), "waste.types.name");
+                    waste_type.color = requireScalar(requireMapEntry(type_node, "color"), "waste.types.color");
+                    config.waste_types.push_back(waste_type);
+                }
             }
 
             return config;
@@ -115,7 +159,11 @@ namespace environment
           resolution_(config.resolution),
           circle_obstacles_(config.circle_obstacles),
           rectangle_obstacles_(config.rectangle_obstacles),
-          station_(config.waste_station)
+          station_(config.station),
+          robot_radius_(config.robot_radius),
+          waste_radius_(config.waste_radius),
+          waste_types_(config.waste_types),
+          max_robot_capacity_(config.max_robot_capacity)
     {
         map_ = cv::imread(map_filename_, cv::IMREAD_GRAYSCALE);
         if (map_.empty())
@@ -145,5 +193,9 @@ namespace environment
     const std::vector<CircleObstacle> &Environment::getCircleObstacles() const { return circle_obstacles_; }
     const std::vector<RectangleObstacle> &Environment::getRectangleObstacles() const { return rectangle_obstacles_; }
     const std::optional<Station> &Environment::getStation() const { return station_; }
+    double Environment::getRobotRadius() const { return robot_radius_; }
+    const WasteRadius &Environment::getWasteRadius() const { return waste_radius_; }
+    const std::vector<WasteType> &Environment::getWasteTypes() const { return waste_types_; }
+    int Environment::getMaxRobotCapacity() const { return max_robot_capacity_; }
 
 } // namespace environment

@@ -6,6 +6,9 @@ namespace canvas
 {
     namespace
     {
+        bool highgui_disabled = cv::currentUIFramework().empty();
+        bool highgui_warning_printed = false;
+
         cv::Point toPixel(const cv::Mat &image, double x, double y, double resolution)
         {
             const int px = static_cast<int>(x / resolution);
@@ -92,12 +95,36 @@ namespace canvas
 
     void Canvas::show() const
     {
+        if (highgui_disabled)
+        {
+            if (!highgui_warning_printed)
+            {
+                highgui_warning_printed = true;
+                std::cerr << "OpenCV HighGUI backend is unavailable; running without canvas window.\n";
+            }
+            return;
+        }
+
         if (image_.empty())
         {
             std::cerr << "error\n";
             return;
         }
-        cv::imshow("Canvas", image_);
+
+        try
+        {
+            cv::imshow("Canvas", image_);
+            cv::pollKey();
+        }
+        catch (const cv::Exception &exception)
+        {
+            highgui_disabled = true;
+            if (!highgui_warning_printed)
+            {
+                highgui_warning_printed = true;
+                std::cerr << "OpenCV HighGUI backend is unavailable; running without canvas window.\n";
+            }
+        }
     }
 
 }

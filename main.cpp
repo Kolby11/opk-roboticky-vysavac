@@ -4,16 +4,45 @@
 #include <string>
 
 #include "Canvas.h"
+#include "controls/Controls.hpp"
 #include "environment/Environment.h"
 #include "parser/Parser.h"
-#include "robot/lidar.h"
 #include "robot/Robot.h"
+#include "robot/RobotNodes.h"
+#include "robot/lidar.h"
+
+namespace
+{
+    void drawScene(canvas::Canvas &canvas,
+                   const environment::Environment &environment,
+                   const lidar::Lidar &lidar,
+                   const geometry::RobotState &state)
+    {
+        const auto hits = lidar.scan(state);
+
+        canvas.reset();
+        for (const auto &obstacle : environment.getCircleObstacles())
+            canvas.drawCircleObstacle(obstacle);
+        for (const auto &obstacle : environment.getRectangleObstacles())
+            canvas.drawRectangleObstacle(obstacle);
+        if (environment.getStation().has_value())
+            canvas.drawStation(*environment.getStation());
+
+        canvas.drawRays(state.x, state.y, hits);
+        canvas.drawLidarPoints(hits);
+        canvas.drawRobot(state.x, state.y, state.theta);
+        canvas.show();
+    }
+}
 
 int main(int argc, char *argv[])
 {
+    rclcpp::init(argc, argv);
+
     if (argc < 2)
     {
-        std::cerr << "Usage: " << argv[0] << " <map_file|environment.yaml>\n";
+        std::cerr << "Usage: " << argv[0] << " <map_file|config.yml>\n";
+        rclcpp::shutdown();
         return 1;
     }
 
@@ -53,7 +82,7 @@ int main(int argc, char *argv[])
             0.0,
             {0.0, 0.0}}};
 
-    const double robot_radius = 8.0;
+    const double robot_radius = environment->getRobotRadius();
     robot::Robot robot(robot_config, [&environment, robot_radius](geometry::RobotState s) -> bool
                        {
         const int points = 16;
@@ -72,44 +101,23 @@ int main(int argc, char *argv[])
     const double linear_speed = 60.0;
     const double angular_speed = 1.5;
 
-    while (true)
+    auto controls = std::make_shared<Controls>(linear_speed, angular_speed);
+    auto command_subscriber = std::make_shared<RobotCommandSubscriber>(robot);
+    auto state_publisher = std::make_shared<RobotStatePublisher>(robot);
+
+    rclcpp::executors::SingleThreadedExecutor executor;
+    executor.add_node(controls);
+    executor.add_node(command_subscriber);
+    executor.add_node(state_publisher);
+
+    while (rclcpp::ok())
     {
-        int key = cv::waitKey(30);
-        if (key == 27)
+        drawScene(canvas, *environment, *lidar, robot.getState());
+        if (!controls->handleInput())
             break;
-
-        geometry::Twist cmd{0.0, 0.0};
-        bool set = true;
-
-        if (key == 'w' || key == 'W')
-            cmd.linear = linear_speed;
-        else if (key == 's' || key == 'S')
-            cmd.linear = -linear_speed;
-        else if (key == 'a' || key == 'A')
-            cmd.angular = angular_speed;
-        else if (key == 'd' || key == 'D')
-            cmd.angular = -angular_speed;
-        else
-            set = false;
-
-        if (set)
-            robot.setVelocity(cmd);
-
-        auto state = robot.getState();
-        auto hits = lidar->scan(state);
-
-        canvas.reset();
-        for (const auto &obstacle : environment->getCircleObstacles())
-            canvas.drawCircleObstacle(obstacle);
-        for (const auto &obstacle : environment->getRectangleObstacles())
-            canvas.drawRectangleObstacle(obstacle);
-        if (environment->getStation().has_value())
-            canvas.drawStation(*environment->getStation());
-        canvas.drawRays(state.x, state.y, hits);
-        canvas.drawLidarPoints(hits);
-        canvas.drawRobot(state.x, state.y, state.theta);
-        canvas.show();
+        executor.spin_some();
     }
 
+    rclcpp::shutdown();
     return 0;
 }

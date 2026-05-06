@@ -40,9 +40,29 @@ TEST(EnvironmentTest, LoadPrimitiveYamlConfig)
     EXPECT_DOUBLE_EQ(config.rectangle_obstacles[0].width, 4.0);
     EXPECT_DOUBLE_EQ(config.rectangle_obstacles[0].height, 3.0);
 
-    ASSERT_TRUE(config.waste_station.has_value());
-    EXPECT_DOUBLE_EQ(config.waste_station->origin.x, 30.0);
-    EXPECT_DOUBLE_EQ(config.waste_station->origin.y, 40.0);
-    EXPECT_DOUBLE_EQ(config.waste_station->width, 3.0);
-    EXPECT_DOUBLE_EQ(config.waste_station->height, 3.0);
+    ASSERT_TRUE(config.station.has_value());
+    EXPECT_DOUBLE_EQ(config.station->origin.x, 30.0);
+    EXPECT_DOUBLE_EQ(config.station->origin.y, 40.0);
+    EXPECT_DOUBLE_EQ(config.station->width, 3.0);
+    EXPECT_DOUBLE_EQ(config.station->height, 3.0);
+}
+
+TEST(EnvironmentTest, LoadGameYamlConfig)
+{
+    const auto config = environment::Config::fromYamlFile(TEST_RESOURCES_DIR "/config.yml");
+
+    EXPECT_EQ(config.map_filename, std::string(TEST_RESOURCES_DIR "/opk-map.png"));
+    EXPECT_DOUBLE_EQ(config.resolution, 0.1);
+    EXPECT_DOUBLE_EQ(config.robot_radius, 8.0);
+    EXPECT_DOUBLE_EQ(config.waste_radius.min, 1.0);
+    EXPECT_DOUBLE_EQ(config.waste_radius.max, 3.0);
+    EXPECT_EQ(config.max_robot_capacity, 10);
+
+    ASSERT_EQ(config.waste_types.size(), 3u);
+    EXPECT_EQ(config.waste_types[0].name, "sklo");
+    EXPECT_EQ(config.waste_types[0].color, "green");
+    EXPECT_EQ(config.waste_types[1].name, "papier");
+    EXPECT_EQ(config.waste_types[1].color, "blue");
+    EXPECT_EQ(config.waste_types[2].name, "plast");
+    EXPECT_EQ(config.waste_types[2].color, "yellow");
 }

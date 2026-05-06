@@ -18,3 +18,19 @@ station:
   y: 40.0
   width: 3.0
   height: 3.0
+
+robot:
+  radius: 8.0
+  max_capacity: 10
+
+waste:
+  radius:
+    min: 1.0
+    max: 3.0
+  types:
+    - name: sklo
+      color: green
+    - name: papier
+      color: blue
+    - name: plast
+      color: yellow

@@ -5,6 +5,8 @@ set(CMAKE_CXX_STANDARD 20)
 
 find_package(OpenCV REQUIRED)
 find_package(GTest REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
 
 add_library(robot_lib
     src/Environment.cpp
@@ -18,7 +20,16 @@ target_include_directories(robot_lib PUBLIC include)
 target_link_libraries(robot_lib PUBLIC ${OpenCV_LIBS})
 
 add_executable(program main.cpp)
+target_sources(program PRIVATE
+    src/RobotNodes.cpp
+    src/controls/Controls.cpp
+)
 target_link_libraries(program robot_lib)
+target_link_libraries(program
+    rclcpp::rclcpp
+    std_msgs::std_msgs__rosidl_typesupport_cpp
+)
+
 
 enable_testing()
 add_subdirectory(tests)

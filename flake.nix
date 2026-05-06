@@ -16,6 +16,8 @@
 
         ros2 = with pkgs.rosPackages.jazzy; buildEnv {
           paths = [
+            ament-cmake
+            ament-cmake-core
             ros-base
             ros2cli
           ];
