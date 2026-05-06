@@ -1,9 +1,11 @@
 #include <iostream>
 #include <memory>
 #include <cmath>
+#include <string>
 
 #include "Canvas.h"
 #include "environment/Environment.h"
+#include "parser/Parser.h"
 #include "robot/lidar.h"
 #include "robot/Robot.h"
 
@@ -11,13 +13,11 @@ int main(int argc, char *argv[])
 {
     if (argc < 2)
     {
-        std::cerr << "Usage: " << argv[0] << " <map_file>\n";
+        std::cerr << "Usage: " << argv[0] << " <map_file|environment.yaml>\n";
         return 1;
     }
 
-    environment::Config environment_config = {
-        .map_filename = argv[1],
-        .resolution = 1.0};
+    const std::string input_file = argv[1];
 
     lidar::Config lidar_config = {
         .max_range = 200,
@@ -26,7 +26,20 @@ int main(int argc, char *argv[])
         .last_ray_angle = M_PI,
     };
 
-    auto environment = std::make_shared<environment::Environment>(environment_config);
+    std::shared_ptr<environment::Environment> environment;
+    if (input_file.ends_with(".yaml") || input_file.ends_with(".yml"))
+    {
+        const YAMLDocument document = YAMLParser::parseFile(input_file);
+        environment = std::make_shared<environment::Environment>(document, input_file);
+    }
+    else
+    {
+        environment::Config environment_config = {
+            .map_filename = input_file,
+            .resolution = 1.0};
+        environment = std::make_shared<environment::Environment>(environment_config);
+    }
+
     auto lidar = std::make_shared<lidar::Lidar>(lidar_config, environment);
 
     robot::Config robot_config{
@@ -54,7 +67,7 @@ int main(int argc, char *argv[])
         }
         return false; });
 
-    canvas::Canvas canvas(argv[1], environment_config.resolution);
+    canvas::Canvas canvas(environment->getMapFilename(), environment->getResolution());
 
     const double linear_speed = 60.0;
     const double angular_speed = 1.5;
@@ -86,6 +99,12 @@ int main(int argc, char *argv[])
         auto hits = lidar->scan(state);
 
         canvas.reset();
+        for (const auto &obstacle : environment->getCircleObstacles())
+            canvas.drawCircleObstacle(obstacle);
+        for (const auto &obstacle : environment->getRectangleObstacles())
+            canvas.drawRectangleObstacle(obstacle);
+        if (environment->getStation().has_value())
+            canvas.drawStation(*environment->getStation());
         canvas.drawRays(state.x, state.y, hits);
         canvas.drawLidarPoints(hits);
         canvas.drawRobot(state.x, state.y, state.theta);

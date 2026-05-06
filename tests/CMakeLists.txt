@@ -1,5 +1,6 @@
 find_package(GTest REQUIRED)
 include(GoogleTest)
+get_target_property(GTEST_IMPORTED_INCLUDES GTest::gtest INTERFACE_INCLUDE_DIRECTORIES)
 
 add_executable(env_tests
     test_environment.cpp
@@ -15,6 +16,8 @@ target_link_libraries(env_tests
 
 target_include_directories(env_tests PRIVATE
     ${CMAKE_SOURCE_DIR}/include
+    ${GTEST_INCLUDE_DIRS}
+    ${GTEST_IMPORTED_INCLUDES}
 )
 
 target_compile_definitions(env_tests PRIVATE

@@ -11,6 +11,7 @@ add_library(robot_lib
     src/Lidar.cpp
     src/Canvas.cpp
     src/Robot.cpp
+    src/parser/Parser.cpp
 )
 
 target_include_directories(robot_lib PUBLIC include)

@@ -4,8 +4,17 @@
 
 namespace canvas
 {
+    namespace
+    {
+        cv::Point toPixel(const cv::Mat &image, double x, double y, double resolution)
+        {
+            const int px = static_cast<int>(x / resolution);
+            const int py = image.rows - 1 - static_cast<int>(y / resolution);
+            return {px, py};
+        }
+    }
 
-    Canvas::Canvas(const std::string& map_filename, double resolution)
+    Canvas::Canvas(const std::string &map_filename, double resolution)
         : resolution_(resolution)
     {
         cv::Mat gray = cv::imread(map_filename, cv::IMREAD_GRAYSCALE);
@@ -20,23 +29,20 @@ namespace canvas
 
     void Canvas::drawPoint(double x, double y)
     {
-        int px = static_cast<int>(x / resolution_);
-        int py = image_.rows - 1 - static_cast<int>(y / resolution_);
-        cv::circle(image_, {px, py}, 4, cv::Scalar(0, 0, 255), cv::FILLED, cv::LINE_AA);
+        cv::circle(image_, toPixel(image_, x, y, resolution_), 4, cv::Scalar(0, 0, 255), cv::FILLED, cv::LINE_AA);
     }
 
     void Canvas::drawRobot(double x, double y)
     {
-        int px = static_cast<int>(x / resolution_);
-        int py = image_.rows - 1 - static_cast<int>(y / resolution_);
-        cv::circle(image_, {px, py}, 8, cv::Scalar(0, 220, 0), 2, cv::LINE_AA);
+        cv::circle(image_, toPixel(image_, x, y, resolution_), 8, cv::Scalar(0, 220, 0), 2, cv::LINE_AA);
     }
 
     void Canvas::drawRobot(double x, double y, double theta)
     {
         drawRobot(x, y);
-        int px = static_cast<int>(x / resolution_);
-        int py = image_.rows - 1 - static_cast<int>(y / resolution_);
+        const cv::Point center = toPixel(image_, x, y, resolution_);
+        const int px = center.x;
+        const int py = center.y;
         int ex = px + static_cast<int>(12 * std::cos(theta));
         int ey = py - static_cast<int>(12 * std::sin(theta));
         cv::arrowedLine(image_, {px, py}, {ex, ey}, cv::Scalar(0, 220, 0), 2, cv::LINE_AA);
@@ -45,11 +51,7 @@ namespace canvas
     void Canvas::drawLidarPoints(const std::vector<geometry::Point2d> &points)
     {
         for (const auto &pt : points)
-        {
-            int px = static_cast<int>(pt.x / resolution_);
-            int py = image_.rows - 1 - static_cast<int>(pt.y / resolution_);
-            cv::circle(image_, {px, py}, 3, cv::Scalar(0, 50, 255), cv::FILLED, cv::LINE_AA);
-        }
+            cv::circle(image_, toPixel(image_, pt.x, pt.y, resolution_), 3, cv::Scalar(0, 50, 255), cv::FILLED, cv::LINE_AA);
     }
 
     void Canvas::reset()
@@ -59,15 +61,33 @@ namespace canvas
 
     void Canvas::drawRays(double x, double y, const std::vector<geometry::Point2d> &hits)
     {
-        int px = static_cast<int>(x / resolution_);
-        int py = image_.rows - 1 - static_cast<int>(y / resolution_);
-        cv::Point from(px, py);
+        const cv::Point from = toPixel(image_, x, y, resolution_);
         for (const auto &h : hits)
         {
-            int hx = static_cast<int>(h.x / resolution_);
-            int hy = image_.rows - 1 - static_cast<int>(h.y / resolution_);
-            cv::line(image_, from, cv::Point(hx, hy), cv::Scalar(0, 255, 0), 1, cv::LINE_AA);
+            cv::line(image_, from, toPixel(image_, h.x, h.y, resolution_), cv::Scalar(0, 255, 0), 1, cv::LINE_AA);
         }
+    }
+
+    void Canvas::drawCircleObstacle(const environment::CircleObstacle &obstacle)
+    {
+        const cv::Point center = toPixel(image_, obstacle.center.x, obstacle.center.y, resolution_);
+        const int radius = static_cast<int>(obstacle.radius / resolution_);
+        cv::circle(image_, center, radius, cv::Scalar(0, 165, 255), 2, cv::LINE_AA);
+    }
+
+    void Canvas::drawRectangleObstacle(const environment::RectangleObstacle &obstacle)
+    {
+        const cv::Point top_left = toPixel(image_, obstacle.origin.x, obstacle.origin.y + obstacle.height, resolution_);
+        const cv::Point bottom_right = toPixel(image_, obstacle.origin.x + obstacle.width, obstacle.origin.y, resolution_);
+        cv::rectangle(image_, top_left, bottom_right, cv::Scalar(255, 140, 0), 2, cv::LINE_AA);
+    }
+
+    void Canvas::drawStation(const environment::Station &station)
+    {
+        const cv::Point top_left = toPixel(image_, station.origin.x, station.origin.y + station.height, resolution_);
+        const cv::Point bottom_right = toPixel(image_, station.origin.x + station.width, station.origin.y, resolution_);
+        cv::rectangle(image_, top_left, bottom_right, cv::Scalar(255, 0, 255), 2, cv::LINE_AA);
+        cv::putText(image_, "WS", top_left + cv::Point(0, -4), cv::FONT_HERSHEY_SIMPLEX, 0.45, cv::Scalar(255, 0, 255), 1, cv::LINE_AA);
     }
 
     void Canvas::show() const
