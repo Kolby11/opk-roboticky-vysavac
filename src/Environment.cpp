@@ -112,8 +112,7 @@ namespace environment
                 Station station;
                 station.origin.x = requireDouble(requireMapEntry(station_it->second, "x"), "station.x");
                 station.origin.y = requireDouble(requireMapEntry(station_it->second, "y"), "station.y");
-                station.width = requireDouble(requireMapEntry(station_it->second, "width"), "station.width");
-                station.height = requireDouble(requireMapEntry(station_it->second, "height"), "station.height");
+                station.radius = requireDouble(requireMapEntry(station_it->second, "radius"), "station.radius");
                 config.station = station;
             }
 

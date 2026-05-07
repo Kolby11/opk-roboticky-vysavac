@@ -25,8 +25,7 @@ namespace environment
     struct Station
     {
         geometry::Point2d origin;
-        double width{0.0};
-        double height{0.0};
+        double radius{0.0};
     };
 
     struct WasteRadius

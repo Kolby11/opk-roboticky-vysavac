@@ -16,8 +16,7 @@ obstacles:
 station:
   x: 30.0
   y: 40.0
-  width: 3.0
-  height: 3.0
+  radius: 20.0
 
 robot:
   radius: 8.0

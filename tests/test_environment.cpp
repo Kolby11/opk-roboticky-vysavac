@@ -24,7 +24,7 @@ TEST(EnvironmentTest, IsOccupied)
 
 TEST(EnvironmentTest, LoadPrimitiveYamlConfig)
 {
-    const auto config = environment::Config::fromYamlFile(TEST_RESOURCES_DIR "/environment.yaml");
+    const auto config = environment::Config::fromYamlFile(TEST_RESOURCES_DIR "/test-environment.yaml");
 
     EXPECT_EQ(config.map_filename, std::string(TEST_RESOURCES_DIR "/opk-map.png"));
     EXPECT_DOUBLE_EQ(config.resolution, 0.1);
@@ -43,8 +43,7 @@ TEST(EnvironmentTest, LoadPrimitiveYamlConfig)
     ASSERT_TRUE(config.station.has_value());
     EXPECT_DOUBLE_EQ(config.station->origin.x, 30.0);
     EXPECT_DOUBLE_EQ(config.station->origin.y, 40.0);
-    EXPECT_DOUBLE_EQ(config.station->width, 3.0);
-    EXPECT_DOUBLE_EQ(config.station->height, 3.0);
+    EXPECT_DOUBLE_EQ(config.station->radius, 3.0);
 }
 
 TEST(EnvironmentTest, LoadGameYamlConfig)

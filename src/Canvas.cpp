@@ -87,10 +87,8 @@ namespace canvas
 
     void Canvas::drawStation(const environment::Station &station)
     {
-        const cv::Point top_left = toPixel(image_, station.origin.x, station.origin.y + station.height, resolution_);
-        const cv::Point bottom_right = toPixel(image_, station.origin.x + station.width, station.origin.y, resolution_);
-        cv::rectangle(image_, top_left, bottom_right, cv::Scalar(255, 0, 255), 2, cv::LINE_AA);
-        cv::putText(image_, "WS", top_left + cv::Point(0, -4), cv::FONT_HERSHEY_SIMPLEX, 0.45, cv::Scalar(255, 0, 255), 1, cv::LINE_AA);
+        const cv::Point station_center = toPixel(image_, station.origin.x, station.origin.y, resolution_);
+        cv::circle(image_, station_center, station.radius, cv::Scalar(255, 0, 255), cv::FILLED, cv::LINE_AA);
     }
 
     void Canvas::show() const

@@ -14,6 +14,10 @@
           overlays = [ nix-ros-overlay.overlays.default ];
         };
 
+        opencvWithGui = pkgs.opencv.override {
+          enableGtk3 = true;
+        };
+
         ros2 = with pkgs.rosPackages.jazzy; buildEnv {
           paths = [
             ament-cmake
@@ -30,7 +34,7 @@
             gcc
             gnumake
             gtest
-            opencv
+            opencvWithGui
             pkg-config
             ros2
           ];
