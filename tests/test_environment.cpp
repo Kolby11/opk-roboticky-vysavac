@@ -52,7 +52,7 @@ TEST(EnvironmentTest, LoadGameYamlConfig)
 
     EXPECT_EQ(config.map_filename, std::string(TEST_RESOURCES_DIR "/opk-map.png"));
     EXPECT_DOUBLE_EQ(config.resolution, 0.1);
-    EXPECT_DOUBLE_EQ(config.robot_radius, 8.0);
+    EXPECT_DOUBLE_EQ(config.robot_radius, 1.0);
     EXPECT_DOUBLE_EQ(config.waste_radius.min, 1.0);
     EXPECT_DOUBLE_EQ(config.waste_radius.max, 3.0);
     EXPECT_EQ(config.max_robot_capacity, 10);

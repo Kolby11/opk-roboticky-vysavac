@@ -1,4 +1,5 @@
 #include "Canvas.h"
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 
@@ -6,6 +7,7 @@ namespace canvas
 {
     namespace
     {
+        constexpr const char *WINDOW_NAME = "Canvas";
         bool highgui_disabled = cv::currentUIFramework().empty();
         bool highgui_warning_printed = false;
 
@@ -37,17 +39,20 @@ namespace canvas
 
     void Canvas::drawRobot(double x, double y)
     {
-        cv::circle(image_, toPixel(image_, x, y, resolution_), 8, cv::Scalar(0, 220, 0), 2, cv::LINE_AA);
+        const int radius_pixels = 8;
+        cv::circle(image_, toPixel(image_, x, y, resolution_), radius_pixels, cv::Scalar(0, 220, 0), 2, cv::LINE_AA);
     }
 
-    void Canvas::drawRobot(double x, double y, double theta)
+    void Canvas::drawRobot(double x, double y, double theta, double radius)
     {
-        drawRobot(x, y);
+        const int radius_pixels = std::max(1, static_cast<int>(std::round(radius / resolution_)));
+        cv::circle(image_, toPixel(image_, x, y, resolution_), radius_pixels, cv::Scalar(0, 220, 0), 2, cv::LINE_AA);
         const cv::Point center = toPixel(image_, x, y, resolution_);
         const int px = center.x;
         const int py = center.y;
-        int ex = px + static_cast<int>(12 * std::cos(theta));
-        int ey = py - static_cast<int>(12 * std::sin(theta));
+        const int heading_length = std::max(radius_pixels + 4, static_cast<int>(radius_pixels * 1.4));
+        int ex = px + static_cast<int>(heading_length * std::cos(theta));
+        int ey = py - static_cast<int>(heading_length * std::sin(theta));
         cv::arrowedLine(image_, {px, py}, {ex, ey}, cv::Scalar(0, 220, 0), 2, cv::LINE_AA);
     }
 
@@ -88,10 +93,11 @@ namespace canvas
     void Canvas::drawStation(const environment::Station &station)
     {
         const cv::Point station_center = toPixel(image_, station.origin.x, station.origin.y, resolution_);
-        cv::circle(image_, station_center, station.radius, cv::Scalar(255, 0, 255), cv::FILLED, cv::LINE_AA);
+        const int radius_pixels = std::max(1, static_cast<int>(std::round(station.radius / resolution_)));
+        cv::circle(image_, station_center, radius_pixels, cv::Scalar(0, 180, 0), cv::FILLED, cv::LINE_AA);
     }
 
-    void Canvas::show() const
+    int Canvas::show(int wait_ms) const
     {
         if (highgui_disabled)
         {
@@ -100,19 +106,19 @@ namespace canvas
                 highgui_warning_printed = true;
                 std::cerr << "OpenCV HighGUI backend is unavailable; running without canvas window.\n";
             }
-            return;
+            return -1;
         }
 
         if (image_.empty())
         {
             std::cerr << "error\n";
-            return;
+            return -1;
         }
 
         try
         {
-            cv::imshow("Canvas", image_);
-            cv::pollKey();
+            cv::imshow(WINDOW_NAME, image_);
+            return cv::waitKeyEx(wait_ms);
         }
         catch (const cv::Exception &exception)
         {
@@ -122,6 +128,7 @@ namespace canvas
                 highgui_warning_printed = true;
                 std::cerr << "OpenCV HighGUI backend is unavailable; running without canvas window.\n";
             }
+            return -1;
         }
     }
 

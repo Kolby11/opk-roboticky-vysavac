@@ -19,7 +19,7 @@ station:
   radius: 20.0
 
 robot:
-  radius: 8.0
+  radius: 1.0
   max_capacity: 10
 
 waste:

@@ -1,0 +1,86 @@
+#include <gtest/gtest.h>
+
+#include "game/Game.h"
+#include "game/GameException.h"
+
+namespace
+{
+    environment::Config makeConfig()
+    {
+        environment::Config config;
+        config.map_filename = TEST_RESOURCES_DIR "/opk-map.png";
+        config.resolution = 0.1;
+        config.robot_radius = 1.0;
+        config.max_robot_capacity = 2;
+        config.station = environment::Station{{10.0, 10.0}, 2.0};
+        config.waste_radius = {0.5, 1.0};
+        config.waste_types = {
+            {"sklo", "green"},
+            {"papier", "blue"},
+            {"plast", "yellow"}};
+        return config;
+    }
+} // namespace
+
+TEST(WasteFactoryTest, CreatesSpecializedWasteTypes)
+{
+    const auto paper = game::WasteFactory::create({"papier", "blue"}, {1.0, 2.0}, 0.5);
+    const auto plastic = game::WasteFactory::create({"plast", "yellow"}, {1.0, 2.0}, 0.5);
+    const auto glass = game::WasteFactory::create({"sklo", "green"}, {1.0, 2.0}, 0.5);
+
+    EXPECT_EQ(paper->getType(), "papier");
+    EXPECT_EQ(plastic->getType(), "plast");
+    EXPECT_EQ(glass->getType(), "sklo");
+}
+
+TEST(GameTest, GeneratesConfiguredWaste)
+{
+    environment::Environment environment(makeConfig());
+    game::Game game(environment, 123);
+
+    game.generateWaste(3);
+
+    EXPECT_EQ(game.getWaste().size(), 3u);
+}
+
+TEST(GameTest, CollectsWasteUpToCapacity)
+{
+    environment::Environment environment(makeConfig());
+    game::Game game(environment, 123);
+
+    game.addWaste(game::WasteFactory::create({"papier", "blue"}, {5.0, 5.0}, 0.5));
+    game.addWaste(game::WasteFactory::create({"plast", "yellow"}, {5.2, 5.0}, 0.5));
+    game.addWaste(game::WasteFactory::create({"sklo", "green"}, {5.4, 5.0}, 0.5));
+
+    game.updateRobotState({5.0, 5.0, 0.0, {0.0, 0.0}});
+
+    EXPECT_EQ(game.getState().current_capacity, 2);
+    EXPECT_EQ(game.getWaste().size(), 1u);
+    EXPECT_EQ(game.getState().collected_by_type.at("papier"), 1);
+    EXPECT_EQ(game.getState().collected_by_type.at("plast"), 1);
+}
+
+TEST(GameTest, UnloadsWasteAtStationAndScores)
+{
+    environment::Environment environment(makeConfig());
+    game::Game game(environment, 123);
+
+    game.addWaste(game::WasteFactory::create({"papier", "blue"}, {5.0, 5.0}, 0.5));
+    game.updateRobotState({5.0, 5.0, 0.0, {0.0, 0.0}});
+    game.updateRobotState({10.0, 10.0, 0.0, {0.0, 0.0}});
+
+    EXPECT_EQ(game.getState().current_capacity, 0);
+    EXPECT_EQ(game.getState().score, 1);
+    EXPECT_EQ(game.getState().delivered_by_type.at("papier"), 1);
+    ASSERT_EQ(game.getState().path.size(), 2u);
+}
+
+TEST(GameTest, ThrowsWhenWasteTypesAreMissing)
+{
+    auto config = makeConfig();
+    config.waste_types.clear();
+    environment::Environment environment(config);
+    game::Game game(environment, 123);
+
+    EXPECT_THROW(game.generateWaste(1), game::GameException);
+}

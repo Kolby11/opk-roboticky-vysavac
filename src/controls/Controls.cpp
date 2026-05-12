@@ -6,6 +6,11 @@
 #include <thread>
 #include <unistd.h>
 
+namespace
+{
+    constexpr auto KEY_REPEAT_GRACE = std::chrono::milliseconds(120);
+}
+
 Controls::Controls(double linear_speed, double angular_speed)
     : Node("controls"),
       publisher_(this->create_publisher<std_msgs::msg::String>("robot_command", 10)),
@@ -23,40 +28,66 @@ Controls::~Controls()
 bool Controls::handleInput(int wait_ms)
 {
     const int key = readInput(wait_ms);
+    return handleKey(key);
+}
+
+bool Controls::handleKey(int key)
+{
     if (key < 0)
         return true;
 
-    switch (key)
+    const int ascii_key = key <= 255 ? (key & 0xff) : -1;
+    const int low_byte = key & 0xff;
+
+    const bool up_arrow = key == 0xff52 || key == 2490368 || (key > 255 && low_byte == 82);
+    const bool down_arrow = key == 0xff54 || key == 2621440 || (key > 255 && low_byte == 84);
+    const bool left_arrow = key == 0xff51 || key == 2424832 || (key > 255 && low_byte == 81);
+    const bool right_arrow = key == 0xff53 || key == 2555904 || (key > 255 && low_byte == 83);
+
+    switch (ascii_key)
     {
     case 27:
     case 'q':
     case 'Q':
-        publishVelocity(0.0, 0.0);
+        setActiveVelocity(0.0, 0.0);
         return false;
-    case 'w':
-    case 'W':
-        publishVelocity(linear_speed_, 0.0);
-        break;
-    case 's':
-    case 'S':
-        publishVelocity(-linear_speed_, 0.0);
-        break;
-    case 'a':
-    case 'A':
-        publishVelocity(0.0, angular_speed_);
-        break;
-    case 'd':
-    case 'D':
-        publishVelocity(0.0, -angular_speed_);
-        break;
-    case ' ':
-        publishVelocity(0.0, 0.0);
-        break;
     default:
         break;
     }
 
+    if (ascii_key == 'w' || ascii_key == 'W' || up_arrow)
+    {
+        setActiveVelocity(linear_speed_, 0.0);
+    }
+    else if (ascii_key == 's' || ascii_key == 'S' || down_arrow)
+    {
+        setActiveVelocity(-linear_speed_, 0.0);
+    }
+    else if (ascii_key == 'a' || ascii_key == 'A' || left_arrow)
+    {
+        setActiveVelocity(0.0, angular_speed_);
+    }
+    else if (ascii_key == 'd' || ascii_key == 'D' || right_arrow)
+    {
+        setActiveVelocity(0.0, -angular_speed_);
+    }
+    else if (ascii_key == ' ')
+    {
+        setActiveVelocity(0.0, 0.0);
+    }
+
     return true;
+}
+
+void Controls::publishActiveCommand()
+{
+    if (std::chrono::steady_clock::now() <= active_until_)
+    {
+        publishVelocity(active_linear_, active_angular_);
+        return;
+    }
+
+    publishVelocity(0.0, 0.0);
 }
 
 void Controls::setupTerminal()
@@ -115,4 +146,12 @@ void Controls::publishVelocity(double linear, double angular)
     data << linear << ' ' << angular;
     message.data = data.str();
     publisher_->publish(message);
+}
+
+void Controls::setActiveVelocity(double linear, double angular)
+{
+    active_linear_ = linear;
+    active_angular_ = angular;
+    active_until_ = std::chrono::steady_clock::now() + KEY_REPEAT_GRACE;
+    publishVelocity(active_linear_, active_angular_);
 }

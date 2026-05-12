@@ -4,6 +4,7 @@ get_target_property(GTEST_IMPORTED_INCLUDES GTest::gtest INTERFACE_INCLUDE_DIREC
 
 add_executable(env_tests
     test_environment.cpp
+    test_game.cpp
     test_lidar.cpp
     test_robot.cpp
 )

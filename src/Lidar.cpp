@@ -13,6 +13,36 @@ namespace lidar
     {
         std::vector<geometry::Point2d> hits;
 
+        const std::vector<double> ranges = scanRanges(state);
+
+        for (int i = 0; i < config_.beam_count; ++i)
+        {
+            double ray_angle;
+            if (config_.beam_count == 1)
+                ray_angle = config_.first_ray_angle;
+            else
+                ray_angle = config_.first_ray_angle +
+                            i * (config_.last_ray_angle - config_.first_ray_angle) /
+                                (config_.beam_count - 1);
+
+            double absolute_angle = state.theta + ray_angle;
+            if (ranges[i] >= config_.max_range)
+                continue;
+
+            hits.push_back({
+                state.x + std::cos(absolute_angle) * ranges[i],
+                state.y + std::sin(absolute_angle) * ranges[i],
+            });
+        }
+
+        return hits;
+    }
+
+    std::vector<double> Lidar::scanRanges(const geometry::RobotState &state) const
+    {
+        std::vector<double> ranges;
+        ranges.reserve(config_.beam_count);
+
         const double step_size = 0.5;
 
         for (int i = 0; i < config_.beam_count; ++i)
@@ -32,6 +62,7 @@ namespace lidar
             double x = state.x;
             double y = state.y;
             double distance = 0.0;
+            double measured_range = config_.max_range;
 
             while (distance < config_.max_range)
             {
@@ -41,13 +72,20 @@ namespace lidar
 
                 if (env_->isOccupied(x, y))
                 {
-                    hits.push_back({x, y});
+                    measured_range = distance;
                     break;
                 }
             }
+
+            ranges.push_back(measured_range);
         }
 
-        return hits;
+        return ranges;
+    }
+
+    const Config &Lidar::getConfig() const
+    {
+        return config_;
     }
 
 } // namespace lidar

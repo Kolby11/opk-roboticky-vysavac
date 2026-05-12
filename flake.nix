@@ -24,6 +24,7 @@
             ament-cmake-core
             ros-base
             ros2cli
+            rviz2
           ];
         };
       in
@@ -31,6 +32,7 @@
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
             cmake
+            fontconfig
             gcc
             gnumake
             gtest

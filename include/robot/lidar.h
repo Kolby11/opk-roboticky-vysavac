@@ -23,6 +23,8 @@ namespace lidar
         Lidar(const Config &config, std::shared_ptr<environment::Environment> env);
 
         std::vector<geometry::Point2d> scan(const geometry::RobotState &state) const;
+        std::vector<double> scanRanges(const geometry::RobotState &state) const;
+        const Config &getConfig() const;
 
     private:
         Config config_;
