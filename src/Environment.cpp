@@ -2,6 +2,7 @@
 #include "parser/Parser.h"
 
 #include <filesystem>
+#include <opencv2/imgcodecs.hpp>
 #include <stdexcept>
 
 namespace environment
@@ -164,9 +165,13 @@ namespace environment
           waste_types_(config.waste_types),
           max_robot_capacity_(config.max_robot_capacity)
     {
-        map_ = cv::imread(map_filename_, cv::IMREAD_GRAYSCALE);
-        if (map_.empty())
+        const cv::Mat map = cv::imread(map_filename_, cv::IMREAD_GRAYSCALE);
+        if (map.empty())
             throw std::runtime_error("Failed to load map: " + map_filename_);
+
+        map_width_pixels_ = map.cols;
+        map_height_pixels_ = map.rows;
+        occupancy_.assign(map.datastart, map.dataend);
     }
 
     Environment::Environment(const YAMLDocument &document, const std::string &source_filename)
@@ -177,16 +182,23 @@ namespace environment
     bool Environment::isOccupied(double x, double y) const
     {
         int col = static_cast<int>(x / resolution_);
-        int row = map_.rows - 1 - static_cast<int>(y / resolution_);
+        int row = map_height_pixels_ - 1 - static_cast<int>(y / resolution_);
 
-        if (col < 0 || row < 0 || col >= map_.cols || row >= map_.rows)
+        if (col < 0 || row < 0 || col >= map_width_pixels_ || row >= map_height_pixels_)
             return true;
 
-        return map_.at<uchar>(row, col) < 128;
+        return occupancy_.at(static_cast<std::size_t>(row * map_width_pixels_ + col)) < 128;
     }
 
-    double Environment::getWidth() const { return map_.cols * resolution_; }
-    double Environment::getHeight() const { return map_.rows * resolution_; }
+    double Environment::getWidth() const { return map_width_pixels_ * resolution_; }
+    double Environment::getHeight() const { return map_height_pixels_ * resolution_; }
+    int Environment::getMapWidthPixels() const { return map_width_pixels_; }
+    int Environment::getMapHeightPixels() const { return map_height_pixels_; }
+    unsigned char Environment::getMapPixel(int x, int y_from_bottom) const
+    {
+        const int image_row = map_height_pixels_ - 1 - y_from_bottom;
+        return occupancy_.at(static_cast<std::size_t>(image_row * map_width_pixels_ + x));
+    }
     double Environment::getResolution() const { return resolution_; }
     const std::string &Environment::getMapFilename() const { return map_filename_; }
     const std::vector<CircleObstacle> &Environment::getCircleObstacles() const { return circle_obstacles_; }

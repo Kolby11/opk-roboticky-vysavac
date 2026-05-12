@@ -11,6 +11,13 @@ Visualization Manager:
       Name: Grid
       Plane: XY
       Reference Frame: odom
+    - Class: rviz_default_plugins/Map
+      Enabled: true
+      Name: Map
+      Topic:
+        Value: /map
+      Alpha: 0.7
+      Draw Behind: true
     - Class: rviz_default_plugins/TF
       Enabled: true
       Name: TF
@@ -19,6 +26,11 @@ Visualization Manager:
       Name: Odometry
       Topic:
         Value: /odom
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: Robot
+      Topic:
+        Value: /robot_markers
     - Class: rviz_default_plugins/LaserScan
       Enabled: true
       Name: Laser Scan

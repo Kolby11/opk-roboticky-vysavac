@@ -8,7 +8,7 @@ namespace canvas
     namespace
     {
         constexpr const char *WINDOW_NAME = "Canvas";
-        bool highgui_disabled = cv::currentUIFramework().empty();
+        bool highgui_disabled = false;
         bool highgui_warning_printed = false;
 
         cv::Point toPixel(const cv::Mat &image, double x, double y, double resolution)

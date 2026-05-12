@@ -18,21 +18,28 @@ add_library(robot_lib
     src/Environment.cpp
     src/Game.cpp
     src/Lidar.cpp
-    src/Canvas.cpp
     src/Robot.cpp
     src/Waste.cpp
     src/parser/Parser.cpp
 )
 
 target_include_directories(robot_lib PUBLIC include)
-target_link_libraries(robot_lib PUBLIC ${OpenCV_LIBS} Fontconfig::Fontconfig)
+target_link_libraries(robot_lib PRIVATE ${OpenCV_LIBS})
+
+add_library(opencv_visualization
+    src/Canvas.cpp
+    src/OpenCvSceneRenderer.cpp
+)
+
+target_include_directories(opencv_visualization PUBLIC include)
+target_link_libraries(opencv_visualization PUBLIC robot_lib ${OpenCV_LIBS} Fontconfig::Fontconfig)
 
 add_executable(program main.cpp)
 target_sources(program PRIVATE
     src/RobotNodes.cpp
     src/controls/Controls.cpp
 )
-target_link_libraries(program robot_lib)
+target_link_libraries(program robot_lib opencv_visualization)
 target_link_libraries(program
     rclcpp::rclcpp
     std_msgs::std_msgs__rosidl_typesupport_cpp

@@ -114,6 +114,58 @@ void RobotStatePublisher::publishState()
     transform_publisher_->publish(tf_message);
 }
 
+RobotMarkerPublisher::RobotMarkerPublisher(const robot::Robot &robot, double robot_radius)
+    : Node("robot_marker_publisher"),
+      robot_(robot),
+      robot_radius_(robot_radius),
+      publisher_(this->create_publisher<visualization_msgs::msg::MarkerArray>("robot_markers", 10))
+{
+    timer_ = this->create_wall_timer(50ms, std::bind(&RobotMarkerPublisher::publishMarker, this));
+}
+
+void RobotMarkerPublisher::publishMarker()
+{
+    const geometry::RobotState state = robot_.getState();
+    const rclcpp::Time stamp = this->now();
+
+    visualization_msgs::msg::Marker body;
+    body.header.stamp = stamp;
+    body.header.frame_id = "odom";
+    body.ns = "robot";
+    body.id = 0;
+    body.type = visualization_msgs::msg::Marker::CYLINDER;
+    body.action = visualization_msgs::msg::Marker::ADD;
+    body.pose.position.x = state.x;
+    body.pose.position.y = state.y;
+    body.pose.position.z = 0.08;
+    body.pose.orientation = yawToQuaternion(state.theta);
+    body.scale.x = robot_radius_ * 2.0;
+    body.scale.y = robot_radius_ * 2.0;
+    body.scale.z = 0.16;
+    setMarkerColor(body, 0.1F, 0.75F, 0.25F, 0.95F);
+
+    visualization_msgs::msg::Marker heading;
+    heading.header.stamp = stamp;
+    heading.header.frame_id = "odom";
+    heading.ns = "robot";
+    heading.id = 1;
+    heading.type = visualization_msgs::msg::Marker::ARROW;
+    heading.action = visualization_msgs::msg::Marker::ADD;
+    heading.pose.position.x = state.x;
+    heading.pose.position.y = state.y;
+    heading.pose.position.z = 0.18;
+    heading.pose.orientation = yawToQuaternion(state.theta);
+    heading.scale.x = robot_radius_ * 1.6;
+    heading.scale.y = robot_radius_ * 0.35;
+    heading.scale.z = robot_radius_ * 0.35;
+    setMarkerColor(heading, 0.0F, 0.25F, 0.08F, 1.0F);
+
+    visualization_msgs::msg::MarkerArray markers;
+    markers.markers.push_back(body);
+    markers.markers.push_back(heading);
+    publisher_->publish(markers);
+}
+
 LaserScanPublisher::LaserScanPublisher(const robot::Robot &robot, const lidar::Lidar &lidar)
     : Node("laser_scan_publisher"),
       robot_(robot),
@@ -225,4 +277,36 @@ void EnvironmentMarkerPublisher::publishMarkers()
     }
 
     publisher_->publish(markers);
+}
+
+EnvironmentMapPublisher::EnvironmentMapPublisher(const environment::Environment &environment)
+    : Node("environment_map_publisher"),
+      environment_(environment),
+      publisher_(this->create_publisher<nav_msgs::msg::OccupancyGrid>("map", rclcpp::QoS(1).transient_local()))
+{
+    timer_ = this->create_wall_timer(1s, std::bind(&EnvironmentMapPublisher::publishMap, this));
+    publishMap();
+}
+
+void EnvironmentMapPublisher::publishMap()
+{
+    nav_msgs::msg::OccupancyGrid map;
+    map.header.stamp = this->now();
+    map.header.frame_id = "odom";
+    map.info.resolution = static_cast<float>(environment_.getResolution());
+    map.info.width = static_cast<unsigned int>(environment_.getMapWidthPixels());
+    map.info.height = static_cast<unsigned int>(environment_.getMapHeightPixels());
+    map.info.origin.orientation.w = 1.0;
+
+    map.data.reserve(static_cast<std::size_t>(map.info.width * map.info.height));
+    for (int y = 0; y < environment_.getMapHeightPixels(); ++y)
+    {
+        for (int x = 0; x < environment_.getMapWidthPixels(); ++x)
+        {
+            const unsigned char pixel = environment_.getMapPixel(x, y);
+            map.data.push_back(pixel < 128 ? 100 : 0);
+        }
+    }
+
+    publisher_->publish(map);
 }

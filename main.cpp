@@ -1,17 +1,20 @@
 #include <iostream>
 #include <memory>
 #include <cmath>
+#include <chrono>
 #include <limits>
+#include <stdexcept>
+#include <thread>
 #include <string>
 #include <vector>
 
-#include "Canvas.h"
 #include "controls/Controls.hpp"
 #include "environment/Environment.h"
 #include "parser/Parser.h"
 #include "robot/Robot.h"
 #include "robot/RobotNodes.h"
 #include "robot/lidar.h"
+#include "visualization/OpenCvSceneRenderer.h"
 
 namespace
 {
@@ -98,25 +101,30 @@ namespace
         return best_state;
     }
 
-    int drawScene(canvas::Canvas &canvas,
-                  const environment::Environment &environment,
-                  const lidar::Lidar &lidar,
-                  const geometry::RobotState &state)
+    struct RuntimeOptions
     {
-        const auto hits = lidar.scan(state);
+        std::string input_file;
+        bool opencv_renderer{false};
+    };
 
-        canvas.reset();
-        for (const auto &obstacle : environment.getCircleObstacles())
-            canvas.drawCircleObstacle(obstacle);
-        for (const auto &obstacle : environment.getRectangleObstacles())
-            canvas.drawRectangleObstacle(obstacle);
-        if (environment.getStation().has_value())
-            canvas.drawStation(*environment.getStation());
+    RuntimeOptions parseOptions(int argc, char *argv[])
+    {
+        RuntimeOptions options;
 
-        canvas.drawRays(state.x, state.y, hits);
-        canvas.drawLidarPoints(hits);
-        canvas.drawRobot(state.x, state.y, state.theta, environment.getRobotRadius());
-        return canvas.show();
+        for (int i = 1; i < argc; ++i)
+        {
+            const std::string arg = argv[i];
+            if (arg == "--opencv")
+                options.opencv_renderer = true;
+            else if (arg == "--no-opencv")
+                options.opencv_renderer = false;
+            else if (options.input_file.empty())
+                options.input_file = arg;
+            else
+                throw std::runtime_error("Unexpected argument: " + arg);
+        }
+
+        return options;
     }
 }
 
@@ -124,14 +132,26 @@ int main(int argc, char *argv[])
 {
     rclcpp::init(argc, argv);
 
-    if (argc < 2)
+    RuntimeOptions options;
+    try
     {
-        std::cerr << "Usage: " << argv[0] << " <map_file|config.yml>\n";
+        options = parseOptions(argc, argv);
+    }
+    catch (const std::exception &exception)
+    {
+        std::cerr << exception.what() << "\n";
         rclcpp::shutdown();
         return 1;
     }
 
-    const std::string input_file = argv[1];
+    if (options.input_file.empty())
+    {
+        std::cerr << "Usage: " << argv[0] << " <map_file|config.yml> [--opencv]\n";
+        rclcpp::shutdown();
+        return 1;
+    }
+
+    const std::string input_file = options.input_file;
 
     lidar::Config lidar_config = {
         .max_range = 200,
@@ -170,7 +190,9 @@ int main(int argc, char *argv[])
                        {
         return robotCollides(*environment, robot_radius, s); });
 
-    canvas::Canvas canvas(environment->getMapFilename(), environment->getResolution());
+    std::unique_ptr<visualization::OpenCvSceneRenderer> opencv_renderer;
+    if (options.opencv_renderer)
+        opencv_renderer = std::make_unique<visualization::OpenCvSceneRenderer>(*environment, *lidar);
 
     const double linear_speed = 60.0;
     const double angular_speed = 1.5;
@@ -178,21 +200,34 @@ int main(int argc, char *argv[])
     auto controls = std::make_shared<Controls>(linear_speed, angular_speed);
     auto command_subscriber = std::make_shared<RobotCommandSubscriber>(robot);
     auto state_publisher = std::make_shared<RobotStatePublisher>(robot);
+    auto robot_marker_publisher = std::make_shared<RobotMarkerPublisher>(robot, robot_radius);
     auto laser_scan_publisher = std::make_shared<LaserScanPublisher>(robot, *lidar);
+    auto environment_map_publisher = std::make_shared<EnvironmentMapPublisher>(*environment);
     auto environment_marker_publisher = std::make_shared<EnvironmentMarkerPublisher>(*environment);
 
     rclcpp::executors::SingleThreadedExecutor executor;
     executor.add_node(controls);
     executor.add_node(command_subscriber);
     executor.add_node(state_publisher);
+    executor.add_node(robot_marker_publisher);
     executor.add_node(laser_scan_publisher);
+    executor.add_node(environment_map_publisher);
     executor.add_node(environment_marker_publisher);
 
     while (rclcpp::ok())
     {
-        const int window_key = drawScene(canvas, *environment, *lidar, robot.getState());
-        if (!controls->handleKey(window_key))
-            break;
+        if (opencv_renderer)
+        {
+            if (!opencv_renderer->render(robot.getState()))
+                break;
+            if (!controls->handleKey(opencv_renderer->lastKey()))
+                break;
+        }
+        else
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        }
+
         if (!controls->handleInput(1))
             break;
         controls->publishActiveCommand();

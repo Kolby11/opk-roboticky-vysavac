@@ -8,6 +8,7 @@
 #include "robot/Robot.h"
 #include "geometry_msgs/msg/twist.hpp"
 #include "nav_msgs/msg/odometry.hpp"
+#include "nav_msgs/msg/occupancy_grid.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "tf2_msgs/msg/tf_message.hpp"
@@ -42,6 +43,20 @@ private:
     rclcpp::Publisher<tf2_msgs::msg::TFMessage>::SharedPtr transform_publisher_;
 };
 
+class RobotMarkerPublisher : public rclcpp::Node
+{
+public:
+    RobotMarkerPublisher(const robot::Robot &robot, double robot_radius);
+
+private:
+    void publishMarker();
+
+    const robot::Robot &robot_;
+    double robot_radius_;
+    rclcpp::TimerBase::SharedPtr timer_;
+    rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr publisher_;
+};
+
 class LaserScanPublisher : public rclcpp::Node
 {
 public:
@@ -67,4 +82,17 @@ private:
     const environment::Environment &environment_;
     rclcpp::TimerBase::SharedPtr timer_;
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr publisher_;
+};
+
+class EnvironmentMapPublisher : public rclcpp::Node
+{
+public:
+    explicit EnvironmentMapPublisher(const environment::Environment &environment);
+
+private:
+    void publishMap();
+
+    const environment::Environment &environment_;
+    rclcpp::TimerBase::SharedPtr timer_;
+    rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr publisher_;
 };

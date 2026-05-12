@@ -3,7 +3,6 @@
 #include <optional>
 #include <string>
 #include <vector>
-#include <opencv2/opencv.hpp>
 #include "parser/Parser.h"
 #include "types/Geometry.h"
 
@@ -64,6 +63,9 @@ namespace environment
         bool isOccupied(double x, double y) const;
         double getWidth() const;
         double getHeight() const;
+        int getMapWidthPixels() const;
+        int getMapHeightPixels() const;
+        unsigned char getMapPixel(int x, int y_from_bottom) const;
         double getResolution() const;
         const std::string &getMapFilename() const;
         const std::vector<CircleObstacle> &getCircleObstacles() const;
@@ -75,7 +77,9 @@ namespace environment
         int getMaxRobotCapacity() const;
 
     private:
-        cv::Mat map_;
+        std::vector<unsigned char> occupancy_;
+        int map_width_pixels_;
+        int map_height_pixels_;
         std::string map_filename_;
         double resolution_;
         std::vector<CircleObstacle> circle_obstacles_;
