@@ -10,11 +10,13 @@
 
 #include "controls/Controls.hpp"
 #include "environment/Environment.h"
+#include "game/Game.h"
 #include "parser/Parser.h"
 #include "robot/Robot.h"
 #include "robot/RobotNodes.h"
 #include "robot/lidar.h"
 #include "visualization/OpenCvSceneRenderer.h"
+#include "web/WebServer.h"
 
 namespace
 {
@@ -105,6 +107,9 @@ namespace
     {
         std::string input_file;
         bool opencv_renderer{false};
+        bool web_server{true};
+        int web_port{8080};
+        bool force_keep_clean{false};
     };
 
     RuntimeOptions parseOptions(int argc, char *argv[])
@@ -118,6 +123,24 @@ namespace
                 options.opencv_renderer = true;
             else if (arg == "--no-opencv")
                 options.opencv_renderer = false;
+            else if (arg == "--no-web")
+                options.web_server = false;
+            else if (arg == "--web-port")
+            {
+                if (i + 1 >= argc)
+                    throw std::runtime_error("--web-port requires a port number");
+                options.web_port = std::stoi(argv[++i]);
+            }
+            else if (arg == "--mode")
+            {
+                if (i + 1 >= argc)
+                    throw std::runtime_error("--mode requires a mode name");
+                const std::string mode = argv[++i];
+                if (mode == "keep-clean" || mode == "keep_clean")
+                    options.force_keep_clean = true;
+                else
+                    throw std::runtime_error("Unsupported mode: " + mode);
+            }
             else if (options.input_file.empty())
                 options.input_file = arg;
             else
@@ -146,7 +169,7 @@ int main(int argc, char *argv[])
 
     if (options.input_file.empty())
     {
-        std::cerr << "Usage: " << argv[0] << " <map_file|config.yml> [--opencv]\n";
+        std::cerr << "Usage: " << argv[0] << " <map_file|config.yml> [--mode keep-clean] [--opencv] [--no-web] [--web-port 8080]\n";
         rclcpp::shutdown();
         return 1;
     }
@@ -175,6 +198,16 @@ int main(int argc, char *argv[])
     }
 
     auto lidar = std::make_shared<lidar::Lidar>(lidar_config, environment);
+    game::Game game(*environment);
+    if (options.force_keep_clean || game.getMode() == game::GameMode::KeepClean)
+    {
+        game.startKeepClean();
+        std::cout << "Game mode: Keep Clean\n";
+    }
+    else
+    {
+        std::cout << "Game mode was drawn, but only Keep Clean is implemented in this build.\n";
+    }
 
     const double robot_radius = environment->getRobotRadius();
     const geometry::RobotState initial_state = findInitialRobotState(*environment, robot_radius);
@@ -189,6 +222,14 @@ int main(int argc, char *argv[])
     robot::Robot robot(robot_config, [&environment, robot_radius](geometry::RobotState s) -> bool
                        {
         return robotCollides(*environment, robot_radius, s); });
+
+    std::unique_ptr<web::WebServer> web_server;
+    if (options.web_server)
+    {
+        web_server = std::make_unique<web::WebServer>(web::ServerConfig{.port = options.web_port}, robot, *environment, *lidar, &game);
+        web_server->start();
+        std::cout << "Web UI/API listening on http://localhost:" << web_server->port() << "\n";
+    }
 
     std::unique_ptr<visualization::OpenCvSceneRenderer> opencv_renderer;
     if (options.opencv_renderer)
@@ -231,6 +272,14 @@ int main(int argc, char *argv[])
         if (!controls->handleInput(1))
             break;
         controls->publishActiveCommand();
+        game.updateRobotState(robot.getState());
+        if (game.getState().finished)
+        {
+            std::cout << "Game finished: "
+                      << (game.getState().success ? "success" : "failed")
+                      << " (" << game.getState().end_reason << ")\n";
+            break;
+        }
         executor.spin_some();
     }
 

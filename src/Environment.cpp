@@ -144,6 +144,24 @@ namespace environment
                 }
             }
 
+            const auto game_it = root.map.find("game");
+            if (game_it != root.map.end())
+            {
+                const auto keep_clean_it = game_it->second.map.find("keep_clean");
+                if (keep_clean_it != game_it->second.map.end())
+                {
+                    const YAMLValue &keep_clean = keep_clean_it->second;
+                    config.keep_clean.waves = requireInt(requireMapEntry(keep_clean, "waves"), "game.keep_clean.waves");
+                    config.keep_clean.waste_per_wave = requireInt(requireMapEntry(keep_clean, "waste_per_wave"), "game.keep_clean.waste_per_wave");
+                    config.keep_clean.required_per_wave = requireInt(requireMapEntry(keep_clean, "required_per_wave"), "game.keep_clean.required_per_wave");
+                    config.keep_clean.wave_time_limit_seconds = requireDouble(requireMapEntry(keep_clean, "wave_time_limit_seconds"), "game.keep_clean.wave_time_limit_seconds");
+
+                    const auto result_file_it = keep_clean.map.find("result_file");
+                    if (result_file_it != keep_clean.map.end())
+                        config.keep_clean.result_file = requireScalar(result_file_it->second, "game.keep_clean.result_file");
+                }
+            }
+
             return config;
         }
     }
@@ -163,6 +181,7 @@ namespace environment
           robot_radius_(config.robot_radius),
           waste_radius_(config.waste_radius),
           waste_types_(config.waste_types),
+          keep_clean_(config.keep_clean),
           max_robot_capacity_(config.max_robot_capacity)
     {
         const cv::Mat map = cv::imread(map_filename_, cv::IMREAD_GRAYSCALE);
@@ -207,6 +226,7 @@ namespace environment
     double Environment::getRobotRadius() const { return robot_radius_; }
     const WasteRadius &Environment::getWasteRadius() const { return waste_radius_; }
     const std::vector<WasteType> &Environment::getWasteTypes() const { return waste_types_; }
+    const KeepCleanConfig &Environment::getKeepCleanConfig() const { return keep_clean_; }
     int Environment::getMaxRobotCapacity() const { return max_robot_capacity_; }
 
 } // namespace environment

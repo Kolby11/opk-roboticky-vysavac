@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <fstream>
 #include <limits>
 #include <numbers>
 
@@ -35,6 +36,7 @@ namespace game
     {
         state_.mode = drawMode();
         state_.max_capacity = environment_.getMaxRobotCapacity();
+        game_started_at_ = std::chrono::steady_clock::now();
     }
 
     GameMode Game::getMode() const { return state_.mode; }
@@ -78,11 +80,60 @@ namespace game
         }
     }
 
+    void Game::startKeepClean()
+    {
+        const environment::KeepCleanConfig &config = environment_.getKeepCleanConfig();
+        if (config.waves <= 0)
+            throw GameException("Keep Clean requires at least one wave");
+        if (config.waste_per_wave <= 0)
+            throw GameException("Keep Clean requires at least one waste item per wave");
+        if (config.required_per_wave <= 0 || config.required_per_wave > config.waste_per_wave)
+            throw GameException("Keep Clean required_per_wave must be between 1 and waste_per_wave");
+        if (config.wave_time_limit_seconds <= 0.0)
+            throw GameException("Keep Clean requires positive wave time limit");
+
+        waste_.clear();
+        state_.mode = GameMode::KeepClean;
+        state_.running = true;
+        state_.finished = false;
+        state_.success = false;
+        state_.current_wave = 0;
+        state_.total_waves = config.waves;
+        state_.waste_per_wave = config.waste_per_wave;
+        state_.required_per_wave = config.required_per_wave;
+        state_.collected_in_wave = 0;
+        state_.wave_time_limit_seconds = config.wave_time_limit_seconds;
+        state_.elapsed_seconds = 0.0;
+        state_.wave_elapsed_seconds = 0.0;
+        state_.end_reason.clear();
+        state_.current_capacity = 0;
+        state_.score = 0;
+        state_.collected_by_type.clear();
+        state_.delivered_by_type.clear();
+        state_.path.clear();
+
+        game_started_at_ = std::chrono::steady_clock::now();
+        beginKeepCleanWave(0.0);
+    }
+
     void Game::updateRobotState(const geometry::RobotState &robot_state)
     {
+        const auto now = std::chrono::steady_clock::now();
+        const double elapsed_seconds = std::chrono::duration<double>(now - game_started_at_).count();
+        updateRobotState(robot_state, elapsed_seconds);
+    }
+
+    void Game::updateRobotState(const geometry::RobotState &robot_state, double elapsed_seconds)
+    {
+        const std::size_t waste_before = waste_.size();
         state_.path.push_back(robotPoint(robot_state));
         collectReachableWaste(robot_state);
         unloadIfInStation(robot_state);
+        if (state_.running && state_.mode == GameMode::KeepClean)
+        {
+            state_.collected_in_wave += static_cast<int>(waste_before - waste_.size());
+            updateKeepClean(elapsed_seconds);
+        }
     }
 
     GameMode Game::drawMode()
@@ -97,6 +148,64 @@ namespace game
         default:
             return GameMode::Duel;
         }
+    }
+
+    void Game::beginKeepCleanWave(double elapsed_seconds)
+    {
+        ++state_.current_wave;
+        state_.collected_in_wave = 0;
+        state_.wave_elapsed_seconds = 0.0;
+        wave_started_at_seconds_ = elapsed_seconds;
+        generateWaste(static_cast<std::size_t>(state_.waste_per_wave));
+    }
+
+    void Game::updateKeepClean(double elapsed_seconds)
+    {
+        state_.elapsed_seconds = elapsed_seconds;
+        state_.wave_elapsed_seconds = elapsed_seconds - wave_started_at_seconds_;
+
+        if (state_.collected_in_wave >= state_.required_per_wave)
+        {
+            if (state_.current_wave >= state_.total_waves)
+            {
+                finishKeepClean(true, "completed all waves");
+                return;
+            }
+
+            beginKeepCleanWave(elapsed_seconds);
+            return;
+        }
+
+        if (state_.wave_elapsed_seconds > state_.wave_time_limit_seconds)
+        {
+            finishKeepClean(false, "wave time limit exceeded");
+        }
+    }
+
+    void Game::finishKeepClean(bool success, const std::string &reason)
+    {
+        if (state_.finished)
+            return;
+
+        state_.running = false;
+        state_.finished = true;
+        state_.success = success;
+        state_.end_reason = reason;
+        writeKeepCleanResult();
+    }
+
+    void Game::writeKeepCleanResult() const
+    {
+        std::ofstream output(environment_.getKeepCleanConfig().result_file, std::ios::app);
+        if (!output)
+            return;
+
+        output << "mode=keep_clean"
+               << " success=" << (state_.success ? "true" : "false")
+               << " waves_completed=" << (state_.success ? state_.total_waves : std::max(0, state_.current_wave - 1))
+               << " total_waves=" << state_.total_waves
+               << " elapsed_seconds=" << state_.elapsed_seconds
+               << " reason=\"" << state_.end_reason << "\"\n";
     }
 
     geometry::Point2d Game::drawFreePosition(double radius)

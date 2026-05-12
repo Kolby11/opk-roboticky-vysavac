@@ -33,3 +33,11 @@ waste:
       color: blue
     - name: plast
       color: yellow
+
+game:
+  keep_clean:
+    waves: 3
+    waste_per_wave: 5
+    required_per_wave: 5
+    wave_time_limit_seconds: 60
+    result_file: keep_clean_result.txt

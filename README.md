@@ -23,3 +23,34 @@ RViz topics:
 - `/robot_markers` (`visualization_msgs/msg/MarkerArray`) shows the robot body and heading.
 - `/scan` (`sensor_msgs/msg/LaserScan`) publishes lidar readings.
 - `/environment_markers` (`visualization_msgs/msg/MarkerArray`) shows obstacles and station.
+
+### Web UI
+
+The simulator exposes a browser API on port 8080 by default:
+
+```sh
+./build/program resources/config.yml
+```
+
+Force Keep Clean mode while testing:
+
+```sh
+./build/program resources/config.yml --mode keep-clean
+```
+
+Run the Svelte app from another terminal:
+
+```sh
+cd web
+npm install
+npm run dev
+```
+
+Open the Vite URL, usually `http://localhost:5173`. Use WASD, arrow keys, or the on-screen controls.
+
+Web API:
+
+- `GET /api/scene` returns map metadata, obstacles, and station.
+- `GET /api/state` returns robot pose, collision state, and lidar hits.
+- `POST /api/command` accepts `{"linear": 60, "angular": 0}` velocity commands.
+- `GET /api/map-image` serves the configured PNG map.

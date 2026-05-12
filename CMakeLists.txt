@@ -19,6 +19,7 @@ add_library(robot_lib
     src/Game.cpp
     src/Lidar.cpp
     src/Robot.cpp
+    src/WebServer.cpp
     src/Waste.cpp
     src/parser/Parser.cpp
 )

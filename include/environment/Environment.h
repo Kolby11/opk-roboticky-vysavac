@@ -39,6 +39,15 @@ namespace environment
         std::string color;
     };
 
+    struct KeepCleanConfig
+    {
+        int waves{3};
+        int waste_per_wave{5};
+        int required_per_wave{5};
+        double wave_time_limit_seconds{60.0};
+        std::string result_file{"keep_clean_result.txt"};
+    };
+
     struct Config
     {
         std::string map_filename;
@@ -49,6 +58,7 @@ namespace environment
         double robot_radius{8.0};
         WasteRadius waste_radius;
         std::vector<WasteType> waste_types;
+        KeepCleanConfig keep_clean;
         int max_robot_capacity{10};
 
         static Config fromYamlFile(const std::string &filename);
@@ -74,6 +84,7 @@ namespace environment
         double getRobotRadius() const;
         const WasteRadius &getWasteRadius() const;
         const std::vector<WasteType> &getWasteTypes() const;
+        const KeepCleanConfig &getKeepCleanConfig() const;
         int getMaxRobotCapacity() const;
 
     private:
@@ -88,6 +99,7 @@ namespace environment
         double robot_radius_;
         WasteRadius waste_radius_;
         std::vector<WasteType> waste_types_;
+        KeepCleanConfig keep_clean_;
         int max_robot_capacity_;
     };
 

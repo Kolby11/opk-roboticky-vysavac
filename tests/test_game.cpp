@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <filesystem>
+
 #include "game/Game.h"
 #include "game/GameException.h"
 
@@ -18,6 +20,7 @@ namespace
             {"sklo", "green"},
             {"papier", "blue"},
             {"plast", "yellow"}};
+        config.keep_clean.result_file = "/tmp/opk_keep_clean_test_result.txt";
         return config;
     }
 } // namespace
@@ -83,4 +86,54 @@ TEST(GameTest, ThrowsWhenWasteTypesAreMissing)
     game::Game game(environment, 123);
 
     EXPECT_THROW(game.generateWaste(1), game::GameException);
+}
+
+TEST(GameTest, KeepCleanCompletesAllWavesAndWritesResult)
+{
+    auto config = makeConfig();
+    config.keep_clean.waves = 2;
+    config.keep_clean.waste_per_wave = 1;
+    config.keep_clean.required_per_wave = 1;
+    config.keep_clean.wave_time_limit_seconds = 10.0;
+    std::filesystem::remove(config.keep_clean.result_file);
+
+    environment::Environment environment(config);
+    game::Game game(environment, 123);
+
+    game.startKeepClean();
+    ASSERT_TRUE(game.getState().running);
+    ASSERT_EQ(game.getWaste().size(), 1u);
+
+    auto waste = game.getWaste().front();
+    game.updateRobotState({waste->getPosition().x, waste->getPosition().y, 0.0, {0.0, 0.0}}, 1.0);
+    EXPECT_TRUE(game.getState().running);
+    EXPECT_EQ(game.getState().current_wave, 2);
+
+    waste = game.getWaste().front();
+    game.updateRobotState({waste->getPosition().x, waste->getPosition().y, 0.0, {0.0, 0.0}}, 2.0);
+
+    EXPECT_TRUE(game.getState().finished);
+    EXPECT_TRUE(game.getState().success);
+    EXPECT_TRUE(std::filesystem::exists(config.keep_clean.result_file));
+}
+
+TEST(GameTest, KeepCleanFailsWhenWaveTimesOut)
+{
+    auto config = makeConfig();
+    config.keep_clean.waves = 1;
+    config.keep_clean.waste_per_wave = 1;
+    config.keep_clean.required_per_wave = 1;
+    config.keep_clean.wave_time_limit_seconds = 5.0;
+    std::filesystem::remove(config.keep_clean.result_file);
+
+    environment::Environment environment(config);
+    game::Game game(environment, 123);
+
+    game.startKeepClean();
+    game.updateRobotState({0.0, 0.0, 0.0, {0.0, 0.0}}, 6.0);
+
+    EXPECT_TRUE(game.getState().finished);
+    EXPECT_FALSE(game.getState().success);
+    EXPECT_EQ(game.getState().end_reason, "wave time limit exceeded");
+    EXPECT_TRUE(std::filesystem::exists(config.keep_clean.result_file));
 }
