@@ -23,6 +23,15 @@ namespace game
         {
             return {state.x, state.y};
         }
+
+        bool circleIntersectsRectangle(const geometry::Point2d &center,
+                                       double radius,
+                                       const environment::RectangleObstacle &rectangle)
+        {
+            const double closest_x = std::clamp(center.x, rectangle.origin.x, rectangle.origin.x + rectangle.width);
+            const double closest_y = std::clamp(center.y, rectangle.origin.y, rectangle.origin.y + rectangle.height);
+            return distance(center, {closest_x, closest_y}) <= radius;
+        }
     } // namespace
 
     Game::Game(const environment::Environment &environment)
@@ -225,13 +234,38 @@ namespace game
 
     bool Game::canPlaceWaste(const geometry::Point2d &position, double radius) const
     {
-        const int samples = 12;
-        for (int i = 0; i < samples; ++i)
+        if (environment_.isOccupied(position.x, position.y))
+            return false;
+
+        const double step = std::max(0.1, environment_.getResolution() * 0.5);
+        for (double dy = -radius; dy <= radius; dy += step)
         {
-            const double angle = 2.0 * std::numbers::pi * i / samples;
-            const double x = position.x + radius * std::cos(angle);
-            const double y = position.y + radius * std::sin(angle);
-            if (environment_.isOccupied(x, y))
+            for (double dx = -radius; dx <= radius; dx += step)
+            {
+                if (dx * dx + dy * dy > radius * radius)
+                    continue;
+
+                if (environment_.isOccupied(position.x + dx, position.y + dy))
+                    return false;
+            }
+        }
+
+        for (const auto &obstacle : environment_.getCircleObstacles())
+        {
+            if (distance(position, obstacle.center) <= radius + obstacle.radius)
+                return false;
+        }
+
+        for (const auto &obstacle : environment_.getRectangleObstacles())
+        {
+            if (circleIntersectsRectangle(position, radius, obstacle))
+                return false;
+        }
+
+        if (environment_.getStation().has_value())
+        {
+            const auto &station = *environment_.getStation();
+            if (distance(position, station.origin) <= radius + station.radius)
                 return false;
         }
 

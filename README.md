@@ -21,6 +21,7 @@ RViz topics:
 - `/odom` (`nav_msgs/msg/Odometry`) publishes robot pose and velocity.
 - `/tf` publishes `odom -> base_link`.
 - `/robot_markers` (`visualization_msgs/msg/MarkerArray`) shows the robot body and heading.
+- `/waste_markers` (`visualization_msgs/msg/MarkerArray`) shows active waste.
 - `/scan` (`sensor_msgs/msg/LaserScan`) publishes lidar readings.
 - `/environment_markers` (`visualization_msgs/msg/MarkerArray`) shows obstacles and station.
 

@@ -243,17 +243,22 @@ int main(int argc, char *argv[])
     auto state_publisher = std::make_shared<RobotStatePublisher>(robot);
     auto robot_marker_publisher = std::make_shared<RobotMarkerPublisher>(robot, robot_radius);
     auto laser_scan_publisher = std::make_shared<LaserScanPublisher>(robot, *lidar);
+    auto waste_marker_publisher = std::make_shared<WasteMarkerPublisher>(game);
     auto environment_map_publisher = std::make_shared<EnvironmentMapPublisher>(*environment);
     auto environment_marker_publisher = std::make_shared<EnvironmentMarkerPublisher>(*environment);
 
-    rclcpp::executors::SingleThreadedExecutor executor;
+    rclcpp::executors::MultiThreadedExecutor executor;
     executor.add_node(controls);
     executor.add_node(command_subscriber);
     executor.add_node(state_publisher);
     executor.add_node(robot_marker_publisher);
     executor.add_node(laser_scan_publisher);
+    executor.add_node(waste_marker_publisher);
     executor.add_node(environment_map_publisher);
     executor.add_node(environment_marker_publisher);
+
+    std::thread ros_thread([&executor]()
+                           { executor.spin(); });
 
     while (rclcpp::ok())
     {
@@ -280,9 +285,11 @@ int main(int argc, char *argv[])
                       << " (" << game.getState().end_reason << ")\n";
             break;
         }
-        executor.spin_some();
     }
 
+    executor.cancel();
+    if (ros_thread.joinable())
+        ros_thread.join();
     rclcpp::shutdown();
     return 0;
 }

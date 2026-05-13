@@ -4,6 +4,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "environment/Environment.h"
+#include "game/Game.h"
 #include "robot/lidar.h"
 #include "robot/Robot.h"
 #include "geometry_msgs/msg/twist.hpp"
@@ -69,6 +70,20 @@ private:
     const lidar::Lidar &lidar_;
     rclcpp::TimerBase::SharedPtr timer_;
     rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr publisher_;
+};
+
+class WasteMarkerPublisher : public rclcpp::Node
+{
+public:
+    explicit WasteMarkerPublisher(const game::Game &game);
+
+private:
+    void publishMarkers();
+
+    const game::Game &game_;
+    rclcpp::TimerBase::SharedPtr timer_;
+    rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr publisher_;
+    std::size_t previous_count_{0};
 };
 
 class EnvironmentMarkerPublisher : public rclcpp::Node

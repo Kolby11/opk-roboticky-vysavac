@@ -14,13 +14,13 @@ obstacles:
     height: 3.0
 
 station:
-  x: 30.0
-  y: 40.0
-  radius: 20.0
+  x: 40.0
+  y: 50.0
+  radius: 5.0
 
 robot:
   radius: 1.0
-  max_capacity: 10
+  max_capacity: 5
 
 waste:
   radius:

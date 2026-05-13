@@ -15,6 +15,9 @@ Visualization Manager:
       Enabled: true
       Name: Map
       Topic:
+        Depth: 1
+        Durability Policy: Transient Local
+        Reliability Policy: Reliable
         Value: /map
       Alpha: 0.7
       Draw Behind: true
@@ -42,7 +45,18 @@ Visualization Manager:
       Enabled: true
       Name: Environment
       Topic:
+        Depth: 1
+        Durability Policy: Transient Local
+        Reliability Policy: Reliable
         Value: /environment_markers
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: Waste
+      Topic:
+        Depth: 1
+        Durability Policy: Transient Local
+        Reliability Policy: Reliable
+        Value: /waste_markers
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48

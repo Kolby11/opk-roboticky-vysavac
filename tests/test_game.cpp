@@ -88,6 +88,17 @@ TEST(GameTest, ThrowsWhenWasteTypesAreMissing)
     EXPECT_THROW(game.generateWaste(1), game::GameException);
 }
 
+TEST(GameTest, DoesNotGenerateWasteInsideConfiguredObstacles)
+{
+    auto config = makeConfig();
+    config.rectangle_obstacles.push_back({{0.0, 0.0}, 153.6, 102.4});
+    config.station.reset();
+    environment::Environment environment(config);
+    game::Game game(environment, 123);
+
+    EXPECT_THROW(game.generateWaste(1), game::GameException);
+}
+
 TEST(GameTest, KeepCleanCompletesAllWavesAndWritesResult)
 {
     auto config = makeConfig();

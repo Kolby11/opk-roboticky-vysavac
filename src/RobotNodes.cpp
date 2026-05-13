@@ -70,7 +70,7 @@ RobotStatePublisher::RobotStatePublisher(const robot::Robot &robot)
       odometry_publisher_(this->create_publisher<nav_msgs::msg::Odometry>("odom", 10)),
       transform_publisher_(this->create_publisher<tf2_msgs::msg::TFMessage>("/tf", 10))
 {
-    timer_ = this->create_wall_timer(100ms, std::bind(&RobotStatePublisher::publishState, this));
+    timer_ = this->create_wall_timer(20ms, std::bind(&RobotStatePublisher::publishState, this));
 }
 
 void RobotStatePublisher::publishState()
@@ -120,7 +120,7 @@ RobotMarkerPublisher::RobotMarkerPublisher(const robot::Robot &robot, double rob
       robot_radius_(robot_radius),
       publisher_(this->create_publisher<visualization_msgs::msg::MarkerArray>("robot_markers", 10))
 {
-    timer_ = this->create_wall_timer(50ms, std::bind(&RobotMarkerPublisher::publishMarker, this));
+    timer_ = this->create_wall_timer(20ms, std::bind(&RobotMarkerPublisher::publishMarker, this));
 }
 
 void RobotMarkerPublisher::publishMarker()
@@ -172,7 +172,7 @@ LaserScanPublisher::LaserScanPublisher(const robot::Robot &robot, const lidar::L
       lidar_(lidar),
       publisher_(this->create_publisher<sensor_msgs::msg::LaserScan>("scan", 10))
 {
-    timer_ = this->create_wall_timer(100ms, std::bind(&LaserScanPublisher::publishScan, this));
+    timer_ = this->create_wall_timer(50ms, std::bind(&LaserScanPublisher::publishScan, this));
 }
 
 void LaserScanPublisher::publishScan()
@@ -200,14 +200,65 @@ void LaserScanPublisher::publishScan()
     publisher_->publish(scan);
 }
 
+WasteMarkerPublisher::WasteMarkerPublisher(const game::Game &game)
+    : Node("waste_marker_publisher"),
+      game_(game),
+      publisher_(this->create_publisher<visualization_msgs::msg::MarkerArray>(
+          "waste_markers", rclcpp::QoS(1).transient_local().reliable()))
+{
+    timer_ = this->create_wall_timer(100ms, std::bind(&WasteMarkerPublisher::publishMarkers, this));
+}
+
+void WasteMarkerPublisher::publishMarkers()
+{
+    visualization_msgs::msg::MarkerArray markers;
+    const auto waste = game_.getWaste();
+
+    for (std::size_t i = 0; i < waste.size(); ++i)
+    {
+        visualization_msgs::msg::Marker marker;
+        marker.header.stamp = this->now();
+        marker.header.frame_id = "odom";
+        marker.ns = "waste";
+        marker.id = static_cast<int>(i);
+        marker.type = visualization_msgs::msg::Marker::SPHERE;
+        marker.action = visualization_msgs::msg::Marker::ADD;
+        marker.pose.position.x = waste[i]->getPosition().x;
+        marker.pose.position.y = waste[i]->getPosition().y;
+        marker.pose.position.z = 0.12;
+        marker.pose.orientation.w = 1.0;
+        marker.scale.x = waste[i]->getRadius() * 2.0;
+        marker.scale.y = waste[i]->getRadius() * 2.0;
+        marker.scale.z = 0.24;
+        setMarkerColor(marker, 0.95F, 0.72F, 0.15F, 0.95F);
+        markers.markers.push_back(marker);
+    }
+
+    for (std::size_t i = waste.size(); i < previous_count_; ++i)
+    {
+        visualization_msgs::msg::Marker marker;
+        marker.header.stamp = this->now();
+        marker.header.frame_id = "odom";
+        marker.ns = "waste";
+        marker.id = static_cast<int>(i);
+        marker.action = visualization_msgs::msg::Marker::DELETE;
+        markers.markers.push_back(marker);
+    }
+
+    previous_count_ = waste.size();
+    publisher_->publish(markers);
+}
+
 EnvironmentMarkerPublisher::EnvironmentMarkerPublisher(const environment::Environment &environment)
     : Node("environment_marker_publisher"),
       environment_(environment),
       publisher_(this->create_publisher<visualization_msgs::msg::MarkerArray>(
-          "environment_markers", rclcpp::QoS(1).transient_local()))
+          "environment_markers", rclcpp::QoS(1).transient_local().reliable()))
 {
-    timer_ = this->create_wall_timer(1s, std::bind(&EnvironmentMarkerPublisher::publishMarkers, this));
-    publishMarkers();
+    timer_ = this->create_wall_timer(250ms, [this]()
+                                     {
+        publishMarkers();
+        timer_->cancel(); });
 }
 
 void EnvironmentMarkerPublisher::publishMarkers()
@@ -282,10 +333,12 @@ void EnvironmentMarkerPublisher::publishMarkers()
 EnvironmentMapPublisher::EnvironmentMapPublisher(const environment::Environment &environment)
     : Node("environment_map_publisher"),
       environment_(environment),
-      publisher_(this->create_publisher<nav_msgs::msg::OccupancyGrid>("map", rclcpp::QoS(1).transient_local()))
+      publisher_(this->create_publisher<nav_msgs::msg::OccupancyGrid>("map", rclcpp::QoS(1).transient_local().reliable()))
 {
-    timer_ = this->create_wall_timer(1s, std::bind(&EnvironmentMapPublisher::publishMap, this));
-    publishMap();
+    timer_ = this->create_wall_timer(250ms, [this]()
+                                     {
+        publishMap();
+        timer_->cancel(); });
 }
 
 void EnvironmentMapPublisher::publishMap()
