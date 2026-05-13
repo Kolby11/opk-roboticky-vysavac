@@ -29,6 +29,7 @@ namespace game
     const std::string &Waste::getColor() const { return color_; }
     const geometry::Point2d &Waste::getPosition() const { return position_; }
     double Waste::getRadius() const { return radius_; }
+    CircleCollider Waste::getCollider() const { return CircleCollider(position_, radius_); }
 
     PaperWaste::PaperWaste(const std::string &color, geometry::Point2d position, double radius)
         : Waste("papier", color, position, radius)

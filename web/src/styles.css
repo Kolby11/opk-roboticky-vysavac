@@ -156,6 +156,20 @@ svg {
   color: #1f6635;
 }
 
+.restart {
+  min-height: 42px;
+  border: 1px solid #235f7f;
+  border-radius: 8px;
+  background: #2d7ca6;
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.restart:active {
+  background: #1f5b7c;
+}
+
 .controls {
   display: grid;
   grid-template-columns: repeat(3, 64px);

@@ -132,7 +132,7 @@ namespace web
                          robot::Robot &robot,
                          const environment::Environment &environment,
                          const lidar::Lidar &lidar,
-                         const game::Game *game)
+                         game::Game *game)
         : config_(config),
           robot_(robot),
           environment_(environment),
@@ -253,6 +253,8 @@ namespace web
             return serveFile(environment_.getMapFilename());
         if (request.method == "POST" && request.path == "/api/command")
             return handleCommand(request);
+        if (request.method == "POST" && request.path == "/api/game/restart")
+            return handleGameRestart();
 
         const std::filesystem::path static_path = config_.static_root / decodePath(request.path);
         if (std::filesystem::exists(static_path) && std::filesystem::is_regular_file(static_path))
@@ -411,6 +413,16 @@ namespace web
         extractNumber(source, "angular", angular);
 
         robot_.setVelocity({linear, angular});
+        return textResponse(200, "OK", "{\"ok\":true}\n", "application/json");
+    }
+
+    std::string WebServer::handleGameRestart() const
+    {
+        if (!game_)
+            return textResponse(409, "Conflict", "{\"ok\":false,\"error\":\"game unavailable\"}\n", "application/json");
+
+        robot_.setVelocity({0.0, 0.0});
+        game_->startKeepClean();
         return textResponse(200, "OK", "{\"ok\":true}\n", "application/json");
     }
 

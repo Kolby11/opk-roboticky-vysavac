@@ -41,6 +41,11 @@ Visualization Manager:
       Style: Points
       Topic:
         Value: /scan
+    - Class: rviz_default_plugins/Path
+      Enabled: true
+      Name: Game Path
+      Topic:
+        Value: /game_path
     - Class: rviz_default_plugins/MarkerArray
       Enabled: true
       Name: Environment

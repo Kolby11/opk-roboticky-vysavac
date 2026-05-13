@@ -11,6 +11,7 @@
 #include "controls/Controls.hpp"
 #include "environment/Environment.h"
 #include "game/Game.h"
+#include "game/GameNode.h"
 #include "parser/Parser.h"
 #include "robot/Robot.h"
 #include "robot/RobotNodes.h"
@@ -109,7 +110,6 @@ namespace
         bool opencv_renderer{false};
         bool web_server{true};
         int web_port{8080};
-        bool force_keep_clean{false};
     };
 
     RuntimeOptions parseOptions(int argc, char *argv[])
@@ -130,16 +130,6 @@ namespace
                 if (i + 1 >= argc)
                     throw std::runtime_error("--web-port requires a port number");
                 options.web_port = std::stoi(argv[++i]);
-            }
-            else if (arg == "--mode")
-            {
-                if (i + 1 >= argc)
-                    throw std::runtime_error("--mode requires a mode name");
-                const std::string mode = argv[++i];
-                if (mode == "keep-clean" || mode == "keep_clean")
-                    options.force_keep_clean = true;
-                else
-                    throw std::runtime_error("Unsupported mode: " + mode);
             }
             else if (options.input_file.empty())
                 options.input_file = arg;
@@ -169,7 +159,7 @@ int main(int argc, char *argv[])
 
     if (options.input_file.empty())
     {
-        std::cerr << "Usage: " << argv[0] << " <map_file|config.yml> [--mode keep-clean] [--opencv] [--no-web] [--web-port 8080]\n";
+        std::cerr << "Usage: " << argv[0] << " <map_file|config.yml> [--opencv] [--no-web] [--web-port 8080]\n";
         rclcpp::shutdown();
         return 1;
     }
@@ -199,15 +189,7 @@ int main(int argc, char *argv[])
 
     auto lidar = std::make_shared<lidar::Lidar>(lidar_config, environment);
     game::Game game(*environment);
-    if (options.force_keep_clean || game.getMode() == game::GameMode::KeepClean)
-    {
-        game.startKeepClean();
-        std::cout << "Game mode: Keep Clean\n";
-    }
-    else
-    {
-        std::cout << "Game mode was drawn, but only Keep Clean is implemented in this build.\n";
-    }
+    std::cout << "Game mode: Keep Clean\n";
 
     const double robot_radius = environment->getRobotRadius();
     const geometry::RobotState initial_state = findInitialRobotState(*environment, robot_radius);
@@ -243,6 +225,7 @@ int main(int argc, char *argv[])
     auto state_publisher = std::make_shared<RobotStatePublisher>(robot);
     auto robot_marker_publisher = std::make_shared<RobotMarkerPublisher>(robot, robot_radius);
     auto laser_scan_publisher = std::make_shared<LaserScanPublisher>(robot, *lidar);
+    auto game_node = std::make_shared<game::GameNode>(game);
     auto waste_marker_publisher = std::make_shared<WasteMarkerPublisher>(game);
     auto environment_map_publisher = std::make_shared<EnvironmentMapPublisher>(*environment);
     auto environment_marker_publisher = std::make_shared<EnvironmentMarkerPublisher>(*environment);
@@ -253,6 +236,7 @@ int main(int argc, char *argv[])
     executor.add_node(state_publisher);
     executor.add_node(robot_marker_publisher);
     executor.add_node(laser_scan_publisher);
+    executor.add_node(game_node);
     executor.add_node(waste_marker_publisher);
     executor.add_node(environment_map_publisher);
     executor.add_node(environment_marker_publisher);
@@ -277,7 +261,6 @@ int main(int argc, char *argv[])
         if (!controls->handleInput(1))
             break;
         controls->publishActiveCommand();
-        game.updateRobotState(robot.getState());
         if (game.getState().finished)
         {
             std::cout << "Game finished: "

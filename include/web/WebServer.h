@@ -26,7 +26,7 @@ namespace web
                   robot::Robot &robot,
                   const environment::Environment &environment,
                   const lidar::Lidar &lidar,
-                  const game::Game *game = nullptr);
+                  game::Game *game = nullptr);
         ~WebServer();
 
         WebServer(const WebServer &) = delete;
@@ -46,13 +46,14 @@ namespace web
         std::string environmentJson() const;
         std::string sceneJson() const;
         std::string handleCommand(const Request &request) const;
+        std::string handleGameRestart() const;
         std::string serveFile(const std::filesystem::path &path) const;
 
         ServerConfig config_;
         robot::Robot &robot_;
         const environment::Environment &environment_;
         const lidar::Lidar &lidar_;
-        const game::Game *game_;
+        game::Game *game_;
         int server_fd_{-1};
         std::thread server_thread_;
         std::atomic<bool> running_{false};

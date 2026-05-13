@@ -89,6 +89,27 @@
     });
   }
 
+  async function restartGame() {
+    pressedKeys.clear();
+    activeCommand = 'stop';
+    await fetch('/api/command', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ linear: 0, angular: 0 })
+    }).catch(() => {
+      connected = false;
+    });
+
+    const response = await fetch('/api/game/restart', { method: 'POST' });
+    if (!response.ok) {
+      connected = false;
+      return;
+    }
+
+    await loadScene();
+    await pollState();
+  }
+
   function setCommand(command) {
     if (activeCommand === command) return;
     activeCommand = command;
@@ -223,6 +244,8 @@
           {game.success ? 'Success' : 'Failed'}: {game.endReason}
         </div>
       {/if}
+
+      <button class="restart" on:click={restartGame}>Restart</button>
     {/if}
 
     <div class="controls" on:mouseleave={stop} on:pointercancel={stop}>

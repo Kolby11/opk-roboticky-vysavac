@@ -37,6 +37,7 @@ target_link_libraries(opencv_visualization PUBLIC robot_lib ${OpenCV_LIBS} Fontc
 
 add_executable(program main.cpp)
 target_sources(program PRIVATE
+    src/GameNode.cpp
     src/RobotNodes.cpp
     src/controls/Controls.cpp
 )

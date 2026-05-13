@@ -23,6 +23,8 @@ RViz topics:
 - `/robot_markers` (`visualization_msgs/msg/MarkerArray`) shows the robot body and heading.
 - `/waste_markers` (`visualization_msgs/msg/MarkerArray`) shows active waste.
 - `/scan` (`sensor_msgs/msg/LaserScan`) publishes lidar readings.
+- `/game_state` (`std_msgs/msg/String`) publishes Keep Clean state.
+- `/game_path` (`nav_msgs/msg/Path`) publishes the travelled path.
 - `/environment_markers` (`visualization_msgs/msg/MarkerArray`) shows obstacles and station.
 
 ### Web UI
@@ -31,12 +33,6 @@ The simulator exposes a browser API on port 8080 by default:
 
 ```sh
 ./build/program resources/config.yml
-```
-
-Force Keep Clean mode while testing:
-
-```sh
-./build/program resources/config.yml --mode keep-clean
 ```
 
 Run the Svelte app from another terminal:
@@ -54,4 +50,5 @@ Web API:
 - `GET /api/scene` returns map metadata, obstacles, and station.
 - `GET /api/state` returns robot pose, collision state, and lidar hits.
 - `POST /api/command` accepts `{"linear": 60, "angular": 0}` velocity commands.
+- `POST /api/game/restart` starts a fresh Keep Clean game.
 - `GET /api/map-image` serves the configured PNG map.

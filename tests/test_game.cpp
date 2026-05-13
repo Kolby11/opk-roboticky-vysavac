@@ -2,6 +2,7 @@
 
 #include <filesystem>
 
+#include "game/Collider.h"
 #include "game/Game.h"
 #include "game/GameException.h"
 
@@ -34,6 +35,16 @@ TEST(WasteFactoryTest, CreatesSpecializedWasteTypes)
     EXPECT_EQ(paper->getType(), "papier");
     EXPECT_EQ(plastic->getType(), "plast");
     EXPECT_EQ(glass->getType(), "sklo");
+}
+
+TEST(ColliderTest, DetectsCircleIntersection)
+{
+    const game::CircleCollider robot({5.0, 5.0}, 1.0);
+    const game::CircleCollider reachable_waste({6.4, 5.0}, 0.5);
+    const game::CircleCollider unreachable_waste({6.6, 5.0}, 0.5);
+
+    EXPECT_TRUE(robot.intersects(reachable_waste));
+    EXPECT_FALSE(robot.intersects(unreachable_waste));
 }
 
 TEST(GameTest, GeneratesConfiguredWaste)

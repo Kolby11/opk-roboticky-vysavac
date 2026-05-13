@@ -13,16 +13,8 @@
 
 namespace game
 {
-    enum class GameMode
-    {
-        KeepClean,
-        BestWorker,
-        Duel
-    };
-
     struct GameState
     {
-        GameMode mode{GameMode::KeepClean};
         int current_capacity{0};
         int max_capacity{0};
         int score{0};
@@ -49,7 +41,6 @@ namespace game
         explicit Game(const environment::Environment &environment);
         Game(const environment::Environment &environment, unsigned int seed);
 
-        GameMode getMode() const;
         const GameState &getState() const;
         std::vector<const Waste *> getWaste() const;
 
@@ -67,7 +58,6 @@ namespace game
         std::chrono::steady_clock::time_point game_started_at_{};
         double wave_started_at_seconds_{0.0};
 
-        GameMode drawMode();
         void beginKeepCleanWave(double elapsed_seconds);
         void updateKeepClean(double elapsed_seconds);
         void finishKeepClean(bool success, const std::string &reason);

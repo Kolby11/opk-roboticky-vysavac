@@ -4,6 +4,7 @@
 #include <string>
 
 #include "environment/Environment.h"
+#include "game/Collider.h"
 #include "types/Geometry.h"
 
 namespace game
@@ -20,6 +21,7 @@ namespace game
         const std::string &getColor() const;
         const geometry::Point2d &getPosition() const;
         double getRadius() const;
+        CircleCollider getCollider() const;
 
     private:
         std::string type_;

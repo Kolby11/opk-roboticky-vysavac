@@ -43,12 +43,10 @@ namespace game
         : environment_(environment),
           random_(seed)
     {
-        state_.mode = drawMode();
         state_.max_capacity = environment_.getMaxRobotCapacity();
         game_started_at_ = std::chrono::steady_clock::now();
     }
 
-    GameMode Game::getMode() const { return state_.mode; }
     const GameState &Game::getState() const { return state_; }
 
     std::vector<const Waste *> Game::getWaste() const
@@ -102,7 +100,6 @@ namespace game
             throw GameException("Keep Clean requires positive wave time limit");
 
         waste_.clear();
-        state_.mode = GameMode::KeepClean;
         state_.running = true;
         state_.finished = false;
         state_.success = false;
@@ -138,24 +135,10 @@ namespace game
         state_.path.push_back(robotPoint(robot_state));
         collectReachableWaste(robot_state);
         unloadIfInStation(robot_state);
-        if (state_.running && state_.mode == GameMode::KeepClean)
+        if (state_.running)
         {
             state_.collected_in_wave += static_cast<int>(waste_before - waste_.size());
             updateKeepClean(elapsed_seconds);
-        }
-    }
-
-    GameMode Game::drawMode()
-    {
-        std::uniform_int_distribution<int> mode_distribution(0, 2);
-        switch (mode_distribution(random_))
-        {
-        case 0:
-            return GameMode::KeepClean;
-        case 1:
-            return GameMode::BestWorker;
-        default:
-            return GameMode::Duel;
         }
     }
 
@@ -285,11 +268,12 @@ namespace game
 
         const geometry::Point2d robot_position = robotPoint(robot_state);
         const double robot_radius = environment_.getRobotRadius();
+        const CircleCollider robot_collider(robot_position, robot_radius);
 
         for (auto it = waste_.begin(); it != waste_.end() && state_.current_capacity < state_.max_capacity;)
         {
             const Waste &item = **it;
-            if (distance(robot_position, item.getPosition()) <= robot_radius + item.getRadius())
+            if (robot_collider.intersects(item.getCollider()))
             {
                 ++state_.current_capacity;
                 ++state_.collected_by_type[item.getType()];

@@ -55,7 +55,7 @@ TEST(EnvironmentTest, LoadGameYamlConfig)
     EXPECT_DOUBLE_EQ(config.robot_radius, 1.0);
     EXPECT_DOUBLE_EQ(config.waste_radius.min, 1.0);
     EXPECT_DOUBLE_EQ(config.waste_radius.max, 3.0);
-    EXPECT_EQ(config.max_robot_capacity, 10);
+    EXPECT_EQ(config.max_robot_capacity, 5);
 
     ASSERT_EQ(config.waste_types.size(), 3u);
     EXPECT_EQ(config.waste_types[0].name, "sklo");
