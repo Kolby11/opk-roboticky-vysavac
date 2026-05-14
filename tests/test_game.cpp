@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 
 #include <filesystem>
+#include <fstream>
+#include <string>
 
 #include "game/Collider.h"
 #include "game/Game.h"
@@ -137,6 +139,10 @@ TEST(GameTest, KeepCleanCompletesAllWavesAndWritesResult)
     EXPECT_TRUE(game.getState().finished);
     EXPECT_TRUE(game.getState().success);
     EXPECT_TRUE(std::filesystem::exists(config.keep_clean.result_file));
+
+    std::ifstream result(config.keep_clean.result_file);
+    const std::string result_text((std::istreambuf_iterator<char>(result)), std::istreambuf_iterator<char>());
+    EXPECT_NE(result_text.find("score=0"), std::string::npos);
 }
 
 TEST(GameTest, KeepCleanFailsWhenWaveTimesOut)

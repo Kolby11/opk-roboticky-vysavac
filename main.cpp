@@ -290,7 +290,9 @@ int main(int argc, char *argv[])
             {
                 std::cout << "Game finished: "
                           << (game_state.success ? "success" : "failed")
-                          << " (" << game_state.end_reason << ")\n"
+                          << " (" << game_state.end_reason << ")"
+                          << " score=" << game_state.score
+                          << " capacity=" << game_state.current_capacity << "/" << game_state.max_capacity << "\n"
                           << "Server is still running. Start a new game from the web UI.\n";
                 game_finish_reported = true;
             }

@@ -194,6 +194,8 @@ namespace game
 
         output << "mode=keep_clean"
                << " success=" << (state_.success ? "true" : "false")
+               << " score=" << state_.score
+               << " capacity=" << state_.current_capacity
                << " waves_completed=" << (state_.success ? state_.total_waves : std::max(0, state_.current_wave - 1))
                << " total_waves=" << state_.total_waves
                << " elapsed_seconds=" << state_.elapsed_seconds
