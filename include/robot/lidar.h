@@ -27,8 +27,17 @@ namespace lidar
         const Config &getConfig() const;
 
     private:
+        struct Beam
+        {
+            double cos_angle{1.0};
+            double sin_angle{0.0};
+        };
+
+        double traceBeam(double start_x, double start_y, double direction_x, double direction_y) const;
+
         Config config_;
         std::shared_ptr<environment::Environment> env_;
+        std::vector<Beam> beams_;
     };
 
 } // namespace lidar

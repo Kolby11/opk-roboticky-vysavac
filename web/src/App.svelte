@@ -104,12 +104,12 @@
     await postVelocity(velocityForCommand(command));
   }
 
-  async function restartGame() {
+  async function startGame() {
     pressedKeys.clear();
     activeCommand = 'stop';
     await postVelocity({ linear: 0, angular: 0 });
 
-    const response = await fetch('/api/game/restart', { method: 'POST' });
+    const response = await fetch('/api/game/start', { method: 'POST' });
     if (!response.ok) {
       connected = false;
       return;
@@ -208,7 +208,7 @@
           <div class="empty-copy">
             <p>Keep Clean</p>
             <h2>Ready for a new run</h2>
-            <button type="button" on:click={restartGame}>Start Game</button>
+            <button type="button" on:click={startGame}>Start Game</button>
           </div>
         </div>
       {:else}
@@ -250,8 +250,8 @@
       <p>Game Mode</p>
       <h1>Keep Clean</h1>
       <div class="menu-actions">
-        <button class="menu-action active" type="button" on:click={restartGame}>Play</button>
-        <button class="menu-action" type="button" on:click={restartGame}>Restart</button>
+        <button class="menu-action active" type="button" on:click={startGame}>Play</button>
+        <button class="menu-action" type="button" on:click={startGame}>Restart</button>
       </div>
     </div>
 
@@ -308,7 +308,7 @@
         </div>
       {/if}
 
-      <button class="restart" on:click={restartGame}>Restart</button>
+      <button class="restart" on:click={startGame}>Restart</button>
     {/if}
 
     <div class="controls" role="group" aria-label="Robot movement controls" on:mouseleave={stop} on:pointercancel={stop}>

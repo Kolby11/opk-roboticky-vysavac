@@ -264,6 +264,7 @@ int main(int argc, char *argv[])
     std::thread ros_thread([&executor]()
                            { executor.spin(); });
 
+    bool game_finish_reported = false;
     while (rclcpp::ok())
     {
         if (opencv_renderer)
@@ -281,12 +282,22 @@ int main(int argc, char *argv[])
         if (!controls->handleInput(1))
             break;
         controls->publishActiveCommand();
-        if (game.getState().finished)
+
+        const game::GameState &game_state = game.getState();
+        if (game_state.finished)
         {
-            std::cout << "Game finished: "
-                      << (game.getState().success ? "success" : "failed")
-                      << " (" << game.getState().end_reason << ")\n";
-            break;
+            if (!game_finish_reported)
+            {
+                std::cout << "Game finished: "
+                          << (game_state.success ? "success" : "failed")
+                          << " (" << game_state.end_reason << ")\n"
+                          << "Server is still running. Start a new game from the web UI.\n";
+                game_finish_reported = true;
+            }
+        }
+        else
+        {
+            game_finish_reported = false;
         }
     }
 

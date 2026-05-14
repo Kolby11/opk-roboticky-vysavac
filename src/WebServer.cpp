@@ -253,7 +253,7 @@ namespace web
             return serveFile(environment_.getMapFilename());
         if (request.method == "POST" && request.path == "/api/command")
             return handleCommand(request);
-        if (request.method == "POST" && request.path == "/api/game/restart")
+        if (request.method == "POST" && (request.path == "/api/game/restart" || request.path == "/api/game/start"))
             return handleGameRestart();
 
         const std::filesystem::path static_path = config_.static_root / decodePath(request.path);
