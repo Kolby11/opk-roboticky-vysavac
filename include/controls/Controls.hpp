@@ -33,6 +33,7 @@ private:
     double active_linear_{0.0};
     double active_angular_{0.0};
     std::chrono::steady_clock::time_point active_until_{};
+    bool idle_stop_published_{true};
     termios original_terminal_{};
     bool terminal_configured_{false};
 };

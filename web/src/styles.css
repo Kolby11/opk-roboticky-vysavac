@@ -30,6 +30,7 @@ main {
 }
 
 .map-shell {
+  position: relative;
   overflow: hidden;
   border: 1px solid #b8c4b9;
   background: #d9dfd8;
@@ -39,6 +40,127 @@ svg {
   display: block;
   width: 100%;
   height: calc(100vh - 36px);
+}
+
+.empty-game {
+  display: grid;
+  place-items: center;
+  gap: 22px;
+  min-height: calc(100vh - 36px);
+  padding: 28px;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.5) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.5) 1px, transparent 1px),
+    #d9dfd8;
+  background-size: 34px 34px;
+}
+
+.empty-arena {
+  position: relative;
+  width: min(58vw, 520px);
+  max-width: 100%;
+  aspect-ratio: 1;
+  border: 1px solid #aebcaf;
+  background: rgba(248, 250, 247, 0.68);
+}
+
+.empty-station,
+.empty-robot,
+.empty-waste {
+  position: absolute;
+  display: block;
+  border-radius: 999px;
+}
+
+.empty-station {
+  right: 10%;
+  bottom: 12%;
+  width: 19%;
+  aspect-ratio: 1;
+  border: 3px solid #2d79b1;
+  background: rgba(46, 130, 206, 0.16);
+}
+
+.empty-robot {
+  left: 19%;
+  top: 22%;
+  width: 13%;
+  aspect-ratio: 1;
+  border: 4px solid #0c4f2c;
+  background: #1fb35a;
+}
+
+.empty-robot::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -38%;
+  width: 4px;
+  height: 48%;
+  border-radius: 999px;
+  background: #052f1a;
+  transform: translateX(-50%);
+}
+
+.empty-waste {
+  width: 5.5%;
+  aspect-ratio: 1;
+  border: 2px solid #7c5709;
+  background: #f3c234;
+}
+
+.waste-one {
+  left: 38%;
+  top: 35%;
+}
+
+.waste-two {
+  right: 31%;
+  top: 24%;
+}
+
+.waste-three {
+  left: 51%;
+  bottom: 23%;
+}
+
+.empty-copy {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.empty-copy p,
+.empty-copy h2 {
+  margin: 0;
+}
+
+.empty-copy p {
+  color: #536451;
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.empty-copy h2 {
+  color: #14251a;
+  font-size: 1.45rem;
+}
+
+.empty-copy button {
+  min-height: 42px;
+  padding: 0 18px;
+  border: 1px solid #1f8d4d;
+  border-radius: 8px;
+  background: #1f8d4d;
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.empty-copy button:active {
+  background: #176b3a;
 }
 
 .robot-body {
@@ -95,6 +217,54 @@ svg {
   padding: 18px;
   border-left: 1px solid #c5cfc5;
   background: #f8faf7;
+}
+
+.game-menu {
+  display: grid;
+  gap: 12px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #d7e0d6;
+}
+
+.game-menu p {
+  margin: 0;
+  color: #5d6b5e;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.game-menu h1 {
+  margin: 0;
+  color: #14251a;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.menu-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.menu-action {
+  min-height: 40px;
+  border: 1px solid #c4d0c3;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #203325;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.menu-action.active {
+  border-color: #1f8d4d;
+  background: #1f8d4d;
+  color: #ffffff;
+}
+
+.menu-action:active {
+  transform: translateY(1px);
 }
 
 .status {
@@ -173,9 +343,10 @@ svg {
 .controls {
   display: grid;
   grid-template-columns: repeat(3, 64px);
-  grid-template-rows: repeat(3, 64px);
+  grid-template-rows: repeat(2, 64px);
   justify-content: center;
   gap: 8px;
+  touch-action: none;
 }
 
 .controls button {
@@ -186,6 +357,7 @@ svg {
   cursor: pointer;
   font-size: 1.55rem;
   font-weight: 800;
+  user-select: none;
 }
 
 .controls button:nth-child(1) {
@@ -205,11 +377,6 @@ svg {
 .controls button:nth-child(4) {
   grid-column: 3;
   grid-row: 2;
-}
-
-.controls button:nth-child(5) {
-  grid-column: 2;
-  grid-row: 3;
 }
 
 .controls button.active,

@@ -85,10 +85,15 @@ void Controls::publishActiveCommand()
     if (std::chrono::steady_clock::now() <= active_until_)
     {
         publishVelocity(active_linear_, active_angular_);
+        idle_stop_published_ = false;
         return;
     }
 
-    publishVelocity(0.0, 0.0);
+    if (!idle_stop_published_)
+    {
+        publishVelocity(0.0, 0.0);
+        idle_stop_published_ = true;
+    }
 }
 
 void Controls::setupTerminal()
@@ -159,5 +164,6 @@ void Controls::setActiveVelocity(double linear, double angular)
     active_linear_ = linear;
     active_angular_ = angular;
     active_until_ = std::chrono::steady_clock::now() + KEY_REPEAT_GRACE;
+    idle_stop_published_ = false;
     publishVelocity(active_linear_, active_angular_);
 }
