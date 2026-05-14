@@ -7,12 +7,31 @@ find_package(OpenCV REQUIRED)
 find_package(Fontconfig REQUIRED)
 find_package(GTest REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(tf2_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+
+rosidl_generate_interfaces(${PROJECT_NAME}
+    msg/GameState.msg
+    msg/RobotCommand.msg
+    msg/RobotState.msg
+    srv/StartGame.srv
+)
+
+foreach(generated_target
+        ${PROJECT_NAME}__rosidl_typesupport_cpp
+        ${PROJECT_NAME}__rosidl_typesupport_c
+        ${PROJECT_NAME}__rosidl_typesupport_fastrtps_cpp
+        ${PROJECT_NAME}__rosidl_typesupport_fastrtps_c
+        ${PROJECT_NAME}__rosidl_generator_c)
+    if(TARGET ${generated_target})
+        set_target_properties(${generated_target} PROPERTIES BUILD_RPATH "$ORIGIN")
+        target_link_options(${generated_target} PRIVATE "-Wl,--disable-new-dtags")
+    endif()
+endforeach()
 
 add_library(robot_lib
     src/Environment.cpp
@@ -42,15 +61,19 @@ target_sources(program PRIVATE
     src/controls/Controls.cpp
 )
 target_link_libraries(program robot_lib opencv_visualization)
+set_target_properties(program PROPERTIES BUILD_RPATH "$ORIGIN")
+target_link_options(program PRIVATE "-Wl,--disable-new-dtags")
 target_link_libraries(program
     rclcpp::rclcpp
-    std_msgs::std_msgs__rosidl_typesupport_cpp
     geometry_msgs::geometry_msgs__rosidl_typesupport_cpp
     nav_msgs::nav_msgs__rosidl_typesupport_cpp
     sensor_msgs::sensor_msgs__rosidl_typesupport_cpp
     tf2_msgs::tf2_msgs__rosidl_typesupport_cpp
     visualization_msgs::visualization_msgs__rosidl_typesupport_cpp
 )
+
+rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
+target_link_libraries(program "${cpp_typesupport_target}")
 
 
 enable_testing()

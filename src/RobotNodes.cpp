@@ -2,7 +2,6 @@
 
 #include <chrono>
 #include <cmath>
-#include <sstream>
 #include <string>
 #include <vector>
 
@@ -38,24 +37,15 @@ RobotCommandSubscriber::RobotCommandSubscriber(robot::Robot &robot)
     : Node("robot_command_subscriber"),
       robot_(robot)
 {
-    subscription_ = this->create_subscription<std_msgs::msg::String>(
+    subscription_ = this->create_subscription<robot_assignment::msg::RobotCommand>(
         "robot_command", 10, std::bind(&RobotCommandSubscriber::commandCallback, this, _1));
     twist_subscription_ = this->create_subscription<geometry_msgs::msg::Twist>(
         "cmd_vel", 10, std::bind(&RobotCommandSubscriber::twistCallback, this, _1));
 }
 
-void RobotCommandSubscriber::commandCallback(const std_msgs::msg::String::SharedPtr message)
+void RobotCommandSubscriber::commandCallback(const robot_assignment::msg::RobotCommand::SharedPtr message)
 {
-    std::istringstream stream(message->data);
-    geometry::Twist velocity;
-
-    if (!(stream >> velocity.linear >> velocity.angular))
-    {
-        RCLCPP_WARN(this->get_logger(), "Ignoring invalid robot command: '%s'", message->data.c_str());
-        return;
-    }
-
-    robot_.setVelocity(velocity);
+    robot_.setVelocity({message->linear, message->angular});
 }
 
 void RobotCommandSubscriber::twistCallback(const geometry_msgs::msg::Twist::SharedPtr message)
@@ -66,7 +56,7 @@ void RobotCommandSubscriber::twistCallback(const geometry_msgs::msg::Twist::Shar
 RobotStatePublisher::RobotStatePublisher(const robot::Robot &robot)
     : Node("robot_state_publisher"),
       robot_(robot),
-      publisher_(this->create_publisher<std_msgs::msg::String>("robot_state", 10)),
+      publisher_(this->create_publisher<robot_assignment::msg::RobotState>("robot_state", 10)),
       odometry_publisher_(this->create_publisher<nav_msgs::msg::Odometry>("odom", 10)),
       transform_publisher_(this->create_publisher<tf2_msgs::msg::TFMessage>("/tf", 10))
 {
@@ -78,15 +68,13 @@ void RobotStatePublisher::publishState()
     const geometry::RobotState state = robot_.getState();
     const rclcpp::Time stamp = this->now();
 
-    auto message = std_msgs::msg::String();
-    std::ostringstream data;
-    data << "x=" << state.x
-         << " y=" << state.y
-         << " theta=" << state.theta
-         << " linear=" << state.velocity.linear
-         << " angular=" << state.velocity.angular
-         << " collision=" << (robot_.isInCollision() ? "true" : "false");
-    message.data = data.str();
+    auto message = robot_assignment::msg::RobotState();
+    message.x = state.x;
+    message.y = state.y;
+    message.theta = state.theta;
+    message.linear = state.velocity.linear;
+    message.angular = state.velocity.angular;
+    message.collision = robot_.isInCollision();
 
     publisher_->publish(message);
 

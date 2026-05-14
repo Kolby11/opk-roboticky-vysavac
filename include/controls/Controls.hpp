@@ -6,7 +6,7 @@
 
 #include "geometry_msgs/msg/twist.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/string.hpp"
+#include "robot_assignment/msg/robot_command.hpp"
 
 class Controls : public rclcpp::Node
 {
@@ -26,7 +26,7 @@ private:
     void publishVelocity(double linear, double angular);
     void setActiveVelocity(double linear, double angular);
 
-    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr command_publisher_;
+    rclcpp::Publisher<robot_assignment::msg::RobotCommand>::SharedPtr command_publisher_;
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr twist_publisher_;
     double linear_speed_;
     double angular_speed_;

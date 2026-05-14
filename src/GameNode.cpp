@@ -2,7 +2,6 @@
 
 #include <cmath>
 #include <map>
-#include <sstream>
 
 #include "geometry_msgs/msg/pose_stamped.hpp"
 
@@ -11,14 +10,26 @@ namespace game
     GameNode::GameNode(Game &game)
         : Node("game_node"),
           game_(game),
-          state_publisher_(this->create_publisher<std_msgs::msg::String>("game_state", 10)),
+          state_publisher_(this->create_publisher<robot_assignment::msg::GameState>("game_state", 10)),
           path_publisher_(this->create_publisher<nav_msgs::msg::Path>("game_path", 10))
     {
         if (!game_.getState().running && !game_.getState().finished)
             game_.startKeepClean();
 
+        start_game_service_ = this->create_service<robot_assignment::srv::StartGame>(
+            "start_game", std::bind(&GameNode::startGameCallback, this, std::placeholders::_1, std::placeholders::_2));
         odometry_subscription_ = this->create_subscription<nav_msgs::msg::Odometry>(
             "odom", 10, std::bind(&GameNode::odometryCallback, this, std::placeholders::_1));
+    }
+
+    void GameNode::startGameCallback(const robot_assignment::srv::StartGame::Request::SharedPtr,
+                                     const robot_assignment::srv::StartGame::Response::SharedPtr response)
+    {
+        game_.startKeepClean();
+        publishState();
+        publishPath();
+        response->ok = true;
+        response->message = "started";
     }
 
     void GameNode::odometryCallback(const nav_msgs::msg::Odometry::SharedPtr message)
@@ -40,9 +51,7 @@ namespace game
 
     void GameNode::publishState()
     {
-        std_msgs::msg::String message;
-        message.data = stateJson();
-        state_publisher_->publish(message);
+        state_publisher_->publish(stateMessage());
     }
 
     void GameNode::publishPath()
@@ -64,54 +73,48 @@ namespace game
         path_publisher_->publish(path);
     }
 
-    std::string GameNode::stateJson() const
+    robot_assignment::msg::GameState GameNode::stateMessage() const
     {
         const GameState &state = game_.getState();
         std::map<std::string, int> remaining_by_type;
         for (const Waste *waste : game_.getWaste())
             ++remaining_by_type[waste->getType()];
 
-        std::ostringstream body;
-        body << "{\"mode\":\"keep_clean\","
-             << "\"running\":" << (state.running ? "true" : "false") << ','
-             << "\"finished\":" << (state.finished ? "true" : "false") << ','
-             << "\"success\":" << (state.success ? "true" : "false") << ','
-             << "\"capacity\":" << state.current_capacity << ','
-             << "\"maxCapacity\":" << state.max_capacity << ','
-             << "\"score\":" << state.score << ','
-             << "\"currentWave\":" << state.current_wave << ','
-             << "\"totalWaves\":" << state.total_waves << ','
-             << "\"wastePerWave\":" << state.waste_per_wave << ','
-             << "\"requiredPerWave\":" << state.required_per_wave << ','
-             << "\"collectedInWave\":" << state.collected_in_wave << ','
-             << "\"waveElapsedSeconds\":" << state.wave_elapsed_seconds << ','
-             << "\"waveTimeLimitSeconds\":" << state.wave_time_limit_seconds << ','
-             << "\"elapsedSeconds\":" << state.elapsed_seconds << ','
-             << "\"pathLength\":" << state.path.size() << ','
-             << "\"endReason\":\"" << state.end_reason << "\",";
+        robot_assignment::msg::GameState message;
+        message.running = state.running;
+        message.finished = state.finished;
+        message.success = state.success;
+        message.capacity = state.current_capacity;
+        message.max_capacity = state.max_capacity;
+        message.score = state.score;
+        message.current_wave = state.current_wave;
+        message.total_waves = state.total_waves;
+        message.waste_per_wave = state.waste_per_wave;
+        message.required_per_wave = state.required_per_wave;
+        message.collected_in_wave = state.collected_in_wave;
+        message.wave_elapsed_seconds = state.wave_elapsed_seconds;
+        message.wave_time_limit_seconds = state.wave_time_limit_seconds;
+        message.elapsed_seconds = state.elapsed_seconds;
+        message.path_length = static_cast<uint32_t>(state.path.size());
+        message.end_reason = state.end_reason;
 
-        auto writeCounts = [&body](const std::map<std::string, int> &counts)
+        auto addCounts = [](const std::map<std::string, int> &counts,
+                            std::vector<std::string> &types,
+                            std::vector<int32_t> &values)
         {
-            body << '{';
-            bool first = true;
+            types.reserve(counts.size());
+            values.reserve(counts.size());
             for (const auto &[type, count] : counts)
             {
-                if (!first)
-                    body << ',';
-                body << '"' << type << "\":" << count;
-                first = false;
+                types.push_back(type);
+                values.push_back(count);
             }
-            body << '}';
         };
 
-        body << "\"remainingByType\":";
-        writeCounts(remaining_by_type);
-        body << ",\"collectedByType\":";
-        writeCounts(state.collected_by_type);
-        body << ",\"deliveredByType\":";
-        writeCounts(state.delivered_by_type);
-        body << '}';
+        addCounts(remaining_by_type, message.remaining_types, message.remaining_counts);
+        addCounts(state.collected_by_type, message.collected_types, message.collected_counts);
+        addCounts(state.delivered_by_type, message.delivered_types, message.delivered_counts);
 
-        return body.str();
+        return message;
     }
 } // namespace game

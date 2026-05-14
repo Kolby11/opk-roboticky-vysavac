@@ -1,7 +1,6 @@
 #include "controls/Controls.hpp"
 
 #include <chrono>
-#include <sstream>
 #include <sys/select.h>
 #include <thread>
 #include <unistd.h>
@@ -13,7 +12,7 @@ namespace
 
 Controls::Controls(double linear_speed, double angular_speed)
     : Node("controls"),
-      command_publisher_(this->create_publisher<std_msgs::msg::String>("robot_command", 10)),
+      command_publisher_(this->create_publisher<robot_assignment::msg::RobotCommand>("robot_command", 10)),
       twist_publisher_(this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10)),
       linear_speed_(linear_speed),
       angular_speed_(angular_speed)
@@ -147,11 +146,10 @@ int Controls::readInput(int wait_ms) const
 
 void Controls::publishVelocity(double linear, double angular)
 {
-    auto message = std_msgs::msg::String();
-    std::ostringstream data;
-    data << linear << ' ' << angular;
-    message.data = data.str();
-    command_publisher_->publish(message);
+    auto command = robot_assignment::msg::RobotCommand();
+    command.linear = linear;
+    command.angular = angular;
+    command_publisher_->publish(command);
 
     auto twist = geometry_msgs::msg::Twist();
     twist.linear.x = linear;

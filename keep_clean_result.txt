@@ -14,3 +14,5 @@ mode=keep_clean success=false waves_completed=0 total_waves=3 elapsed_seconds=60
 mode=keep_clean success=false waves_completed=0 total_waves=3 elapsed_seconds=60.0177 reason="wave time limit exceeded"
 mode=keep_clean success=false waves_completed=0 total_waves=3 elapsed_seconds=60.0088 reason="wave time limit exceeded"
 mode=keep_clean success=false waves_completed=0 total_waves=3 elapsed_seconds=60.0067 reason="wave time limit exceeded"
+mode=keep_clean success=false score=0 capacity=0 waves_completed=0 total_waves=3 elapsed_seconds=60.0092 reason="wave time limit exceeded"
+mode=keep_clean success=false score=3 capacity=0 waves_completed=0 total_waves=3 elapsed_seconds=60.0143 reason="wave time limit exceeded"

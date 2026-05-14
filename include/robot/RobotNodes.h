@@ -11,7 +11,8 @@
 #include "nav_msgs/msg/odometry.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
-#include "std_msgs/msg/string.hpp"
+#include "robot_assignment/msg/robot_command.hpp"
+#include "robot_assignment/msg/robot_state.hpp"
 #include "tf2_msgs/msg/tf_message.hpp"
 #include "visualization_msgs/msg/marker_array.hpp"
 
@@ -21,11 +22,11 @@ public:
     explicit RobotCommandSubscriber(robot::Robot &robot);
 
 private:
-    void commandCallback(const std_msgs::msg::String::SharedPtr message);
+    void commandCallback(const robot_assignment::msg::RobotCommand::SharedPtr message);
     void twistCallback(const geometry_msgs::msg::Twist::SharedPtr message);
 
     robot::Robot &robot_;
-    rclcpp::Subscription<std_msgs::msg::String>::SharedPtr subscription_;
+    rclcpp::Subscription<robot_assignment::msg::RobotCommand>::SharedPtr subscription_;
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr twist_subscription_;
 };
 
@@ -39,7 +40,7 @@ private:
 
     const robot::Robot &robot_;
     rclcpp::TimerBase::SharedPtr timer_;
-    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
+    rclcpp::Publisher<robot_assignment::msg::RobotState>::SharedPtr publisher_;
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odometry_publisher_;
     rclcpp::Publisher<tf2_msgs::msg::TFMessage>::SharedPtr transform_publisher_;
 };
