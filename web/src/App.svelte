@@ -226,9 +226,20 @@
     {#if game}
       <div class="game">
         <div>
+          <strong>{game.score || 0}</strong>
+          <span>score</span>
+        </div>
+        <div>
+          <strong>{game.capacity || 0}/{game.maxCapacity || 0}</strong>
+          <span>capacity</span>
+        </div>
+        <div>
           <strong>{game.currentWave || 0}/{game.totalWaves || 0}</strong>
           <span>wave</span>
         </div>
+      </div>
+
+      <div class="game">
         <div>
           <strong>{game.collectedInWave || 0}/{game.requiredPerWave || 0}</strong>
           <span>collected</span>

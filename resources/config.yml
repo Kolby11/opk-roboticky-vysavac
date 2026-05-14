@@ -4,12 +4,12 @@ map:
 
 obstacles:
   - type: circle
-    center_x: 10.0
-    center_y: 12.0
+    center_x: 40.0
+    center_y: 60.0
     radius: 2.5
   - type: rectangle
-    x: 20.0
-    y: 21.0
+    x: 60.0
+    y: 40.0
     width: 4.0
     height: 3.0
 

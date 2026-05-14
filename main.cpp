@@ -1,5 +1,6 @@
 #include <iostream>
 #include <memory>
+#include <algorithm>
 #include <cmath>
 #include <chrono>
 #include <limits>
@@ -25,6 +26,25 @@ namespace
                        double robot_radius,
                        const geometry::RobotState &state)
     {
+        for (const environment::CircleObstacle &obstacle : environment.getCircleObstacles())
+        {
+            const double dx = state.x - obstacle.center.x;
+            const double dy = state.y - obstacle.center.y;
+            const double min_distance = robot_radius + obstacle.radius;
+            if (dx * dx + dy * dy <= min_distance * min_distance)
+                return true;
+        }
+
+        for (const environment::RectangleObstacle &obstacle : environment.getRectangleObstacles())
+        {
+            const double closest_x = std::clamp(state.x, obstacle.origin.x, obstacle.origin.x + obstacle.width);
+            const double closest_y = std::clamp(state.y, obstacle.origin.y, obstacle.origin.y + obstacle.height);
+            const double dx = state.x - closest_x;
+            const double dy = state.y - closest_y;
+            if (dx * dx + dy * dy <= robot_radius * robot_radius)
+                return true;
+        }
+
         const int points = 32;
         if (environment.isOccupied(state.x, state.y))
             return true;

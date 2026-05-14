@@ -312,6 +312,8 @@ namespace web
                  << "\"running\":" << (game_state.running ? "true" : "false") << ','
                  << "\"finished\":" << (game_state.finished ? "true" : "false") << ','
                  << "\"success\":" << (game_state.success ? "true" : "false") << ','
+                 << "\"capacity\":" << game_state.current_capacity << ','
+                 << "\"maxCapacity\":" << game_state.max_capacity << ','
                  << "\"currentWave\":" << game_state.current_wave << ','
                  << "\"totalWaves\":" << game_state.total_waves << ','
                  << "\"collectedInWave\":" << game_state.collected_in_wave << ','

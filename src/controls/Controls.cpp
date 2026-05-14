@@ -13,7 +13,8 @@ namespace
 
 Controls::Controls(double linear_speed, double angular_speed)
     : Node("controls"),
-      publisher_(this->create_publisher<std_msgs::msg::String>("robot_command", 10)),
+      command_publisher_(this->create_publisher<std_msgs::msg::String>("robot_command", 10)),
+      twist_publisher_(this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10)),
       linear_speed_(linear_speed),
       angular_speed_(angular_speed)
 {
@@ -145,7 +146,12 @@ void Controls::publishVelocity(double linear, double angular)
     std::ostringstream data;
     data << linear << ' ' << angular;
     message.data = data.str();
-    publisher_->publish(message);
+    command_publisher_->publish(message);
+
+    auto twist = geometry_msgs::msg::Twist();
+    twist.linear.x = linear;
+    twist.angular.z = angular;
+    twist_publisher_->publish(twist);
 }
 
 void Controls::setActiveVelocity(double linear, double angular)

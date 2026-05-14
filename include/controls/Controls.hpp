@@ -4,6 +4,7 @@
 #include <chrono>
 #include <termios.h>
 
+#include "geometry_msgs/msg/twist.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
 
@@ -25,7 +26,8 @@ private:
     void publishVelocity(double linear, double angular);
     void setActiveVelocity(double linear, double angular);
 
-    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
+    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr command_publisher_;
+    rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr twist_publisher_;
     double linear_speed_;
     double angular_speed_;
     double active_linear_{0.0};

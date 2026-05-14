@@ -2,6 +2,7 @@
 #include "parser/Parser.h"
 
 #include <filesystem>
+#include <cmath>
 #include <opencv2/imgcodecs.hpp>
 #include <stdexcept>
 
@@ -200,6 +201,21 @@ namespace environment
 
     bool Environment::isOccupied(double x, double y) const
     {
+        for (const CircleObstacle &obstacle : circle_obstacles_)
+        {
+            const double dx = x - obstacle.center.x;
+            const double dy = y - obstacle.center.y;
+            if (dx * dx + dy * dy <= obstacle.radius * obstacle.radius)
+                return true;
+        }
+
+        for (const RectangleObstacle &obstacle : rectangle_obstacles_)
+        {
+            if (x >= obstacle.origin.x && x <= obstacle.origin.x + obstacle.width &&
+                y >= obstacle.origin.y && y <= obstacle.origin.y + obstacle.height)
+                return true;
+        }
+
         int col = static_cast<int>(x / resolution_);
         int row = map_height_pixels_ - 1 - static_cast<int>(y / resolution_);
 

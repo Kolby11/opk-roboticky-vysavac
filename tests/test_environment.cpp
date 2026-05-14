@@ -46,6 +46,15 @@ TEST(EnvironmentTest, LoadPrimitiveYamlConfig)
     EXPECT_DOUBLE_EQ(config.station->radius, 3.0);
 }
 
+TEST(EnvironmentTest, PrimitiveObstaclesAreOccupied)
+{
+    const auto config = environment::Config::fromYamlFile(TEST_RESOURCES_DIR "/test-environment.yaml");
+    environment::Environment env(config);
+
+    EXPECT_TRUE(env.isOccupied(10.0, 12.0));
+    EXPECT_TRUE(env.isOccupied(21.0, 22.0));
+}
+
 TEST(EnvironmentTest, LoadGameYamlConfig)
 {
     const auto config = environment::Config::fromYamlFile(TEST_RESOURCES_DIR "/config.yml");

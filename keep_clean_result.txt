@@ -3,3 +3,7 @@ mode=keep_clean success=false waves_completed=0 total_waves=3 elapsed_seconds=60
 mode=keep_clean success=false waves_completed=0 total_waves=3 elapsed_seconds=60.0209 reason="wave time limit exceeded"
 mode=keep_clean success=false waves_completed=0 total_waves=3 elapsed_seconds=60.0206 reason="wave time limit exceeded"
 mode=keep_clean success=false waves_completed=0 total_waves=3 elapsed_seconds=60.0114 reason="wave time limit exceeded"
+mode=keep_clean success=false waves_completed=0 total_waves=3 elapsed_seconds=60.0045 reason="wave time limit exceeded"
+mode=keep_clean success=false waves_completed=0 total_waves=3 elapsed_seconds=60.0028 reason="wave time limit exceeded"
+mode=keep_clean success=false waves_completed=0 total_waves=3 elapsed_seconds=60.0085 reason="wave time limit exceeded"
+mode=keep_clean success=false waves_completed=0 total_waves=3 elapsed_seconds=60.0077 reason="wave time limit exceeded"

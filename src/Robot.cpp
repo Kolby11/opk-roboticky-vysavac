@@ -47,23 +47,32 @@ namespace robot
 
     void Robot::update(const geometry::Twist &velocity, double dt)
     {
-        double new_x = state_.x + velocity.linear * std::cos(state_.theta) * dt;
-        double new_y = state_.y + velocity.linear * std::sin(state_.theta) * dt;
-        state_.theta += velocity.angular * dt;
+        const double linear_step = velocity.linear * dt;
+        const double angular_step = velocity.angular * dt;
+        const int substeps = std::max(1, static_cast<int>(std::ceil(std::abs(linear_step) / 0.25)));
+        const double sub_dt = dt / substeps;
 
-        if (collision_cb_)
+        for (int i = 0; i < substeps; ++i)
         {
-            geometry::RobotState test{new_x, new_y, state_.theta, velocity};
-            if (collision_cb_(test))
-            {
-                in_collision_ = true;
-                return;
-            }
-            in_collision_ = false;
-        }
+            double new_x = state_.x + velocity.linear * std::cos(state_.theta) * sub_dt;
+            double new_y = state_.y + velocity.linear * std::sin(state_.theta) * sub_dt;
+            double new_theta = state_.theta + velocity.angular * sub_dt;
 
-        state_.x = new_x;
-        state_.y = new_y;
+            if (collision_cb_)
+            {
+                geometry::RobotState test{new_x, new_y, new_theta, velocity};
+                if (collision_cb_(test))
+                {
+                    in_collision_ = true;
+                    return;
+                }
+                in_collision_ = false;
+            }
+
+            state_.x = new_x;
+            state_.y = new_y;
+            state_.theta = new_theta;
+        }
     }
 
     void Robot::simulationLoop()
