@@ -33,8 +33,7 @@
   let activeCommand = 'stop';
   let pressedKeys = new Set();
   let commandTimer;
-  let controlStopTimer;
-  let stateTimer;
+  let statePollTimer;
   let sceneLoaded = false;
   let activePointerId = null;
 
@@ -49,8 +48,17 @@
     waste.length > 0;
   $: showEmptyGame = !game && (!sceneLoaded || !hasSceneGeometry);
 
+  function viewY(y) {
+    return environment.height - y;
+  }
+
+  function viewRectY(y, height) {
+    return environment.height - y - height;
+  }
+
   async function loadScene() {
-    const response = await fetch('/api/scene');
+    const response = await fetch('/api/scene', { cache: 'no-store' });
+    if (!response.ok) throw new Error('Scene unavailable');
     const scene = await response.json();
     environment = scene.environment;
     obstacles = scene.obstacles;
@@ -61,7 +69,12 @@
 
   async function pollState() {
     try {
+      if (!sceneLoaded) {
+        await loadScene();
+      }
+
       const response = await fetch('/api/state', { cache: 'no-store' });
+      if (!response.ok) throw new Error('State unavailable');
       const data = await response.json();
       robot = data.robot;
       scan = data.scan ?? [];
@@ -70,6 +83,8 @@
       connected = true;
     } catch {
       connected = false;
+    } finally {
+      statePollTimer = setTimeout(pollState, connected ? 100 : 1500);
     }
   }
 
@@ -101,6 +116,7 @@
   }
 
   async function sendCommand(command = activeCommand) {
+    if (!connected) return;
     await postVelocity(velocityForCommand(command));
   }
 
@@ -120,6 +136,7 @@
   }
 
   function setCommand(command) {
+    if (!connected && command !== 'stop') return;
     if (activeCommand === command) return;
     activeCommand = command;
     sendCommand(command);
@@ -131,7 +148,6 @@
 
   function handleControlDown(event, command) {
     event.preventDefault();
-    clearTimeout(controlStopTimer);
     activePointerId = event.pointerId;
     event.currentTarget.setPointerCapture?.(activePointerId);
     setCommand(command);
@@ -141,7 +157,6 @@
     if (event && activePointerId !== null && event.pointerId !== activePointerId) return;
     event?.currentTarget?.releasePointerCapture?.(activePointerId);
     activePointerId = null;
-    clearTimeout(controlStopTimer);
     stop();
   }
 
@@ -173,19 +188,18 @@
   }
 
   onMount(() => {
-    loadScene().catch(() => {
-      connected = false;
-    });
     pollState();
-    stateTimer = setInterval(pollState, 100);
-    commandTimer = setInterval(() => sendCommand(), 50);
+    commandTimer = setInterval(() => {
+      if (connected && activeCommand !== 'stop') {
+        sendCommand();
+      }
+    }, 50);
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
 
     return () => {
-      clearInterval(stateTimer);
+      clearTimeout(statePollTimer);
       clearInterval(commandTimer);
-      clearTimeout(controlStopTimer);
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
       stop();
@@ -213,33 +227,33 @@
         </div>
       {:else}
         <svg viewBox={viewBox} role="img" aria-label="Robot map">
-          <image href={environment.mapImage} x="0" y="0" width={environment.width} height={environment.height} preserveAspectRatio="none" transform={`translate(0 ${environment.height}) scale(1 -1)`} />
+          <image href={environment.mapImage} x="0" y="0" width={environment.width} height={environment.height} preserveAspectRatio="none" />
 
           {#each obstacles.rectangles as obstacle}
-            <rect class="obstacle" x={obstacle.x} y={environment.height - obstacle.y - obstacle.height} width={obstacle.width} height={obstacle.height} />
+            <rect class="obstacle" x={obstacle.x} y={viewRectY(obstacle.y, obstacle.height)} width={obstacle.width} height={obstacle.height} />
           {/each}
 
           {#each obstacles.circles as obstacle}
-            <circle class="obstacle" cx={obstacle.x} cy={environment.height - obstacle.y} r={obstacle.radius} />
+            <circle class="obstacle" cx={obstacle.x} cy={viewY(obstacle.y)} r={obstacle.radius} />
           {/each}
 
           {#if station}
-            <circle class="station" cx={station.x} cy={environment.height - station.y} r={station.radius} />
+            <circle class="station" cx={station.x} cy={viewY(station.y)} r={station.radius} />
           {/if}
 
           {#each waste as item}
-            <circle class="waste" cx={item.x} cy={environment.height - item.y} r={item.radius} />
+            <circle class="waste" cx={item.x} cy={viewY(item.y)} r={item.radius} />
           {/each}
 
           <g class="scan">
             {#each scan as hit}
-              <line x1={robot.x} y1={environment.height - robot.y} x2={hit.x} y2={environment.height - hit.y} />
-              <circle cx={hit.x} cy={environment.height - hit.y} r="0.28" />
+              <line x1={robot.x} y1={viewY(robot.y)} x2={hit.x} y2={viewY(hit.y)} />
+              <circle cx={hit.x} cy={viewY(hit.y)} r="0.28" />
             {/each}
           </g>
 
-          <circle class:collision={robot.collision} class="robot-body" cx={robot.x} cy={environment.height - robot.y} r={robotSize / 2} />
-          <line class="robot-heading" x1={robot.x} y1={environment.height - robot.y} x2={headingX} y2={environment.height - headingY} />
+          <circle class:collision={robot.collision} class="robot-body" cx={robot.x} cy={viewY(robot.y)} r={robotSize / 2} />
+          <line class="robot-heading" x1={robot.x} y1={viewY(robot.y)} x2={headingX} y2={viewY(headingY)} />
         </svg>
       {/if}
     </div>
@@ -259,6 +273,12 @@
       <span class:online={connected}></span>
       {connected ? 'Connected' : 'Disconnected'}
     </div>
+
+    {#if !connected}
+      <div class="backend-hint" role="status">
+        Backend is not running on port 8080.
+      </div>
+    {/if}
 
     <div class="readout">
       <div>
@@ -312,10 +332,10 @@
     {/if}
 
     <div class="controls" role="group" aria-label="Robot movement controls" on:mouseleave={stop} on:pointercancel={stop}>
-      <button type="button" aria-label="Move forward" class:active={activeCommand === 'forward'} on:pointerdown={(event) => handleControlDown(event, 'forward')} on:pointerup={handleControlUp} on:pointercancel={handleControlUp}>&uarr;</button>
-      <button type="button" aria-label="Turn left" class:active={activeCommand === 'left'} on:pointerdown={(event) => handleControlDown(event, 'left')} on:pointerup={handleControlUp} on:pointercancel={handleControlUp}>&larr;</button>
-      <button type="button" aria-label="Move backward" class:active={activeCommand === 'back'} on:pointerdown={(event) => handleControlDown(event, 'back')} on:pointerup={handleControlUp} on:pointercancel={handleControlUp}>&darr;</button>
-      <button type="button" aria-label="Turn right" class:active={activeCommand === 'right'} on:pointerdown={(event) => handleControlDown(event, 'right')} on:pointerup={handleControlUp} on:pointercancel={handleControlUp}>&rarr;</button>
+      <button type="button" aria-label="Move forward" disabled={!connected} class:active={activeCommand === 'forward'} on:pointerdown={(event) => handleControlDown(event, 'forward')} on:pointerup={handleControlUp} on:pointercancel={handleControlUp}>&uarr;</button>
+      <button type="button" aria-label="Turn left" disabled={!connected} class:active={activeCommand === 'left'} on:pointerdown={(event) => handleControlDown(event, 'left')} on:pointerup={handleControlUp} on:pointercancel={handleControlUp}>&larr;</button>
+      <button type="button" aria-label="Move backward" disabled={!connected} class:active={activeCommand === 'back'} on:pointerdown={(event) => handleControlDown(event, 'back')} on:pointerup={handleControlUp} on:pointercancel={handleControlUp}>&darr;</button>
+      <button type="button" aria-label="Turn right" disabled={!connected} class:active={activeCommand === 'right'} on:pointerdown={(event) => handleControlDown(event, 'right')} on:pointerup={handleControlUp} on:pointercancel={handleControlUp}>&rarr;</button>
     </div>
   </aside>
 </main>

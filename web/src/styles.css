@@ -285,6 +285,15 @@ svg {
   background: #239b52;
 }
 
+.backend-hint {
+  padding: 10px;
+  border: 1px solid #d8b75b;
+  background: #fff8df;
+  color: #60470c;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
 .readout,
 .game {
   display: grid;
@@ -383,6 +392,11 @@ svg {
 .controls button:active {
   background: #1f8d4d;
   color: #ffffff;
+}
+
+.controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
 }
 
 @media (max-width: 780px) {
